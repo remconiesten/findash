@@ -3,7 +3,7 @@
 {% elif not rows %}
 <p class="banner">{{ t.ui('studio.empty') }}</p>
 {% else %}
-<form id="bulk-form" method="post" action="import-studio/bulk" class="studio-bulk-form">
+<form id="bulk-form" method="post" action="{{ base|default('') }}/import-studio/bulk" class="studio-bulk-form">
   <div class="studio-bulk">
     <input type="hidden" name="drempel" value="{{ drempel }}">
     <input type="hidden" name="queue" value="{{ queue }}">
@@ -41,10 +41,10 @@
 <p class="studio-pager">
   <span>{{ total }} {{ t.ui('studio.rows') }} · {{ t.ui('studio.page') }} {{ page }} {{ t.ui('studio.page_of') }} {{ pages }}</span>
   {% if page > 1 %}
-  <a href="import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page - 1 }}">←</a>
+  <a href="{{ base|default('') }}/import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page - 1 }}">←</a>
   {% endif %}
   {% if has_next %}
-  <a href="import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page + 1 }}">→</a>
+  <a href="{{ base|default('') }}/import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page + 1 }}">→</a>
   {% endif %}
 </p>
 <script>

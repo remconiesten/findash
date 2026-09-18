@@ -19,22 +19,24 @@
   <link rel="stylesheet" href="static/css/app.css?v=18">
   <script src="static/js/htmx.min.js" defer></script>
   <script src="static/js/chart.umd.min.js" defer></script>
-  <script src="static/js/charts.js?v=7" defer></script>
+  <script src="static/js/charts.js?v=8" defer></script>
 </head>
 <body>
   <div class="page">
     <div class="chrome">
       <header class="top">
-        <a class="brand" href=".">
+        <a class="brand" href="{{ base|default('') }}/">
           <img class="brand-mark" src="static/logo.svg" width="36" height="36" alt="">
           <span class="brand-name">FinDash</span>
         </a>
         <div class="top-right">
           {% block top_nav %}
-          <a class="nav-studio" href="import-studio">{{ t.ui('studio.nav') }}</a>
+          <a class="nav-studio" href="{{ base|default('') }}/import-studio">{{ t.ui('studio.nav') }}</a>
           {% endblock %}
           {% set cycle_now = cycle|default('calendar') %}
-          <form class="langs cycle-switch" method="post" action="cycle">
+          {% set next_value = request.url.path ~ (('?' ~ request.url.query) if request.url.query else '') %}
+          <form class="langs cycle-switch" method="post" action="{{ base|default('') }}/cycle">
+            <input type="hidden" name="next" value="{{ next_value }}">
             <button type="submit" name="cycle" value="calendar"
                     class="{{ 'active' if cycle_now=='calendar' else '' }}"
                     title="{{ t.ui('cycle.calendar_title') }}"
@@ -44,7 +46,8 @@
                     title="{{ t.ui('cycle.salary_title') }}"
                     aria-pressed="{{ 'true' if cycle_now=='salary' else 'false' }}">{{ t.ui('cycle.salary') }}</button>
           </form>
-          <form class="langs" method="post" action="locale">
+          <form class="langs" method="post" action="{{ base|default('') }}/locale">
+            <input type="hidden" name="next" value="{{ next_value }}">
             <button type="submit" name="lang" value="nl" class="{{ 'active' if locale=='nl' else '' }}" title="{{ t.ui('lang.nl') }}" aria-pressed="{{ 'true' if locale=='nl' else 'false' }}">NL</button>
             <button type="submit" name="lang" value="en" class="{{ 'active' if locale=='en' else '' }}" title="{{ t.ui('lang.en') }}" aria-pressed="{{ 'true' if locale=='en' else 'false' }}">EN</button>
             <button type="submit" name="lang" value="ru" class="{{ 'active' if locale=='ru' else '' }}" title="{{ t.ui('lang.ru') }}" aria-pressed="{{ 'true' if locale=='ru' else 'false' }}">RU</button>

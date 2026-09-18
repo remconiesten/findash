@@ -57,8 +57,8 @@
     {% endif %}
   </td>
   <td class="studio-edit">
-    <form class="studio-correct" method="post" action="import-studio/correct" novalidate
-          hx-post="import-studio/correct" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
+    <form class="studio-correct" method="post" action="{{ base|default('') }}/import-studio/correct" novalidate
+          hx-post="{{ base|default('') }}/import-studio/correct" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
       <div class="studio-form">
       <input type="hidden" name="src" value="{{ row.src }}">
       <input type="hidden" name="transactie_id" value="{{ row.transactie_id }}">
@@ -67,7 +67,7 @@
       <label>
         <span class="field-label">{{ t.ui('filter.hoofd') }}</span>
         <select name="hoofd" required
-                hx-get="import-studio/subs?sid=sub-{{ row.src }}-{{ row.transactie_id }}"
+                hx-get="{{ base|default('') }}/import-studio/subs?sid=sub-{{ row.src }}-{{ row.transactie_id }}"
                 hx-target="#sub-{{ row.src }}-{{ row.transactie_id }}"
                 hx-swap="outerHTML">
           {% for h in hoofden %}
@@ -111,8 +111,8 @@
     </form>
     <div class="studio-links">
       {% if row.corrected %}
-      <form method="post" action="import-studio/undo"
-            hx-post="import-studio/undo" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
+      <form method="post" action="{{ base|default('') }}/import-studio/undo"
+            hx-post="{{ base|default('') }}/import-studio/undo" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
         <input type="hidden" name="src" value="{{ row.src }}">
         <input type="hidden" name="transactie_id" value="{{ row.transactie_id }}">
         <input type="hidden" name="drempel" value="{{ drempel }}">
@@ -120,7 +120,7 @@
       </form>
       {% endif %}
       <button type="button" class="linkish"
-              hx-get="import-studio/neighbors?src={{ row.src }}&transactie_id={{ row.transactie_id }}"
+              hx-get="{{ base|default('') }}/import-studio/neighbors?src={{ row.src }}&transactie_id={{ row.transactie_id }}"
               hx-target="#nb-{{ row.src }}-{{ row.transactie_id }}">{{ t.ui('studio.neighbors') }}</button>
     </div>
     <div id="nb-{{ row.src }}-{{ row.transactie_id }}"></div>

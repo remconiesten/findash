@@ -15,6 +15,7 @@ def test_static_and_nav_unprefixed_without_ingress():
     assert 'href="static/css/app.css' in resp.text
     assert 'href="/static/css/app.css' not in resp.text
     assert 'hx-get="."' in resp.text
+    assert 'name="next"' in resp.text
     css = client.get("/static/css/app.css")
     assert css.status_code == 200
     assert b'url("/static/' not in css.content
@@ -28,7 +29,7 @@ def test_ingress_prefix_on_html_and_redirect():
     assert resp.status_code in (200, 503)
     assert f'<base id="app-base" href="{prefix}/">' in resp.text
     assert 'href="static/css/app.css' in resp.text
-    assert 'href="import-studio"' in resp.text
+    assert f'href="{prefix}/import-studio"' in resp.text
     loc = client.post(
         "/locale",
         data={"lang": "en"},
@@ -37,6 +38,43 @@ def test_ingress_prefix_on_html_and_redirect():
     )
     assert loc.status_code == 303
     assert loc.headers["location"].startswith(prefix)
+
+
+def test_locale_keeps_next_without_referer():
+    client = TestClient(app)
+    prefix = "/api/hassio_ingress/testtoken"
+    loc = client.post(
+        "/locale",
+        data={"lang": "en", "next": "/import-studio?q=ah"},
+        headers={"X-Ingress-Path": prefix},
+        follow_redirects=False,
+    )
+    assert loc.status_code == 303
+    assert loc.headers["location"] == f"{prefix}/import-studio?q=ah"
+
+
+def test_locale_rejects_open_redirect_next():
+    client = TestClient(app)
+    prefix = "/api/hassio_ingress/testtoken"
+    loc = client.post(
+        "/locale",
+        data={"lang": "nl", "next": "https://example.invalid/"},
+        headers={"X-Ingress-Path": prefix},
+        follow_redirects=False,
+    )
+    assert loc.status_code == 303
+    assert loc.headers["location"] == f"{prefix}/"
+
+
+def test_locale_next_on_laptop_has_no_prefix():
+    client = TestClient(app)
+    loc = client.post(
+        "/locale",
+        data={"lang": "en", "next": "/?from_year=2026"},
+        follow_redirects=False,
+    )
+    assert loc.status_code == 303
+    assert loc.headers["location"] == "/?from_year=2026"
 
 
 def test_tx_route_still_exists():
@@ -56,5 +94,5 @@ def test_charts_js_prefixes_via_app_url():
 
 def test_neighbors_query_stays_inside_hx_get():
     html = (ROOT / "findash/app/templates/partials/studio_row.html").read_text()
-    assert 'hx-get="import-studio/neighbors?src=' in html
+    assert 'hx-get="{{ base|default(\'\') }}/import-studio/neighbors?src=' in html
     assert 'neighbors"?src=' not in html

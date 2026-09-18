@@ -22,7 +22,8 @@ def test_addon_manifest_has_gui_secrets_not_values():
     assert "anonymize_json: str" in text
     assert "ingress: true" in text
     assert "share:rw" in text
-    assert 'version: "0.2.2"' in text
+    assert 'version: "0.2.3"' in text
+    assert "ingress_stream: true" in text
     assert "github.com/remconiesten/findash" in (ROOT / "repository.yaml").read_text()
 
 

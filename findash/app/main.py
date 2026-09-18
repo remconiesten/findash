@@ -202,11 +202,28 @@ def ready() -> JSONResponse:
     return JSONResponse({"ok": True, "findash_schema": "ok"})
 
 
+def _safe_next(raw: str | None) -> str | None:
+    """Allow only / or /import-studio plus query. No open redirects."""
+    if not raw:
+        return None
+    parsed = urlparse(raw.strip())
+    if parsed.scheme or parsed.netloc:
+        return None
+    path = parsed.path or ""
+    if path != "/" and path != "/import-studio":
+        return None
+    if parsed.query:
+        return f"{path}?{parsed.query}"
+    return path
+
+
 @app.post("/locale")
-def set_locale(request: Request, lang: str = Form(...)) -> Response:
+def set_locale(
+    request: Request, lang: str = Form(...), next: str = Form("")
+) -> Response:
     if lang not in LOCALES:
         return JSONResponse({"error": "invalid lang"}, status_code=400)
-    dest = _cycle_dest(request)
+    dest = _cycle_dest(request, next)
     resp = redirect(request, dest)
     resp.set_cookie(
         "findash_lang",
@@ -220,13 +237,16 @@ def set_locale(request: Request, lang: str = Form(...)) -> Response:
     return resp
 
 
-def _cycle_dest(request: Request) -> str:
+def _cycle_dest(request: Request, next_raw: str = "") -> str:
+    dest = _safe_next(next_raw)
+    if dest:
+        return dest
     prefix = _base(request)
     ref = urlparse(request.headers.get("referer") or "")
     path = ref.path or ""
     if prefix and path.startswith(prefix):
         path = path[len(prefix) :] or "/"
-    if path.startswith("/import-studio"):
+    if path == "/import-studio":
         dest = path
         if ref.query:
             dest = f"{path}?{ref.query}"
@@ -237,9 +257,11 @@ def _cycle_dest(request: Request) -> str:
 
 
 @app.post("/cycle")
-def set_cycle(request: Request, cycle: str = Form(...)) -> Response:
+def set_cycle(
+    request: Request, cycle: str = Form(...), next: str = Form("")
+) -> Response:
     chosen = parse_cycle(cycle)
-    resp = redirect(request, _cycle_dest(request))
+    resp = redirect(request, _cycle_dest(request, next))
     resp.set_cookie(
         "findash_cycle",
         chosen,

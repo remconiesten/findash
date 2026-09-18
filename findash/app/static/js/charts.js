@@ -60,9 +60,59 @@ function euroTooltip() {
 
 function appUrl(path) {
   const href = (document.querySelector("base") && document.querySelector("base").getAttribute("href")) || "/";
-  const rel = String(path || "").replace(/^\//, "");
+  const raw = String(path || "");
+  if (!raw || raw === "." || raw.charAt(0) === "#") return raw;
+  if (/^https?:/i.test(raw)) return raw;
+  if (raw.indexOf("/api/hassio_ingress/") === 0) return raw;
+  const rel = raw.replace(/^\//, "");
   const resolved = new URL(rel, new URL(href, window.location.origin));
   return resolved.pathname + resolved.search;
+}
+
+function currentNext() {
+  let path = window.location.pathname || "/";
+  const m = path.match(/^\/api\/hassio_ingress\/[^/]+(\/.*)?$/);
+  if (m) path = m[1] || "/";
+  if (!path) path = "/";
+  return path + (window.location.search || "");
+}
+
+function prefixAppLinks(root) {
+  const scope = root || document;
+  scope.querySelectorAll("form[action]").forEach((form) => {
+    const action = form.getAttribute("action");
+    if (!action || action === ".") return;
+    form.setAttribute("action", appUrl(action));
+  });
+  ["hx-get", "hx-post"].forEach((attr) => {
+    scope.querySelectorAll("[" + attr + "]").forEach((el) => {
+      const value = el.getAttribute(attr);
+      if (!value || value === ".") return;
+      el.setAttribute(attr, appUrl(value));
+    });
+  });
+  scope.querySelectorAll("a[href]").forEach((el) => {
+    const href = el.getAttribute("href");
+    if (!href || href === "." || href.charAt(0) === "#") return;
+    if (href.indexOf("/api/hassio_ingress/") === 0) return;
+    if (
+      href === "/" ||
+      href.indexOf("/import-studio") === 0 ||
+      href.indexOf("import-studio") === 0 ||
+      href.indexOf("static/") === 0
+    ) {
+      el.setAttribute("href", appUrl(href));
+    }
+  });
+}
+
+function bindNextOnSubmit() {
+  document.querySelectorAll("form.langs").forEach((form) => {
+    form.addEventListener("submit", () => {
+      const field = form.querySelector("input[name=next]");
+      if (field) field.value = currentNext();
+    });
+  });
 }
 
 function applyDrill(level, key) {
@@ -308,12 +358,17 @@ document.body.addEventListener("click", (e) => {
   applyDrill(btn.dataset.drill, btn.dataset.key || "");
 });
 
-document.addEventListener("DOMContentLoaded", hydrate);
+document.addEventListener("DOMContentLoaded", () => {
+  prefixAppLinks(document);
+  bindNextOnSubmit();
+  hydrate();
+});
 document.body.addEventListener("htmx:beforeSwap", (e) => {
   if (e.detail.target && e.detail.target.id === "dashboard") destroyCharts();
 });
 document.body.addEventListener("htmx:afterSwap", (e) => {
   const target = e.detail.target;
+  if (target) prefixAppLinks(target);
   if (target && target.classList && target.classList.contains("tx-embed-body")) {
     const embed = target.closest("tr.tx-embed");
     if (embed) embed.scrollIntoView({ behavior: "smooth", block: "nearest" });

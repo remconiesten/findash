@@ -83,6 +83,14 @@ def test_tx_route_still_exists():
     assert resp.status_code in (200, 400, 422, 503)
 
 
+def test_zoom_hud_is_fixed():
+    css = (ROOT / "findash/app/static/css/app.css").read_text()
+    assert "position: fixed" in css
+    assert ".zoom-hud" in css
+    html = (ROOT / "findash/app/templates/base.html").read_text()
+    assert "block float" in html
+
+
 def test_saving_chart_is_line():
     js = (ROOT / "findash/app/static/js/charts.js").read_text()
     assert 'type: "line"' in js

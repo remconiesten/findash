@@ -62,9 +62,6 @@ def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
 
 
-GOLDEN_ANGLE = 137.508
-
-
 def _rgb_to_hsl(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
     r, g, b = rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0
     mx, mn = max(r, g, b), min(r, g, b)
@@ -120,26 +117,57 @@ def hue_distance(a: str, b: str) -> float:
     return min(d, 360.0 - d)
 
 
+def _palette_hexes() -> list[str]:
+    seen: list[str] = []
+    for hex_color in HOOFD_COLORS.values():
+        if hex_color not in seen:
+            seen.append(hex_color)
+    return seen
+
+
+def _lighten(hex_color: str, t: float) -> str:
+    r, g, b = _hex_to_rgb(hex_color)
+    return _rgb_to_hex(
+        (
+            int(round(r + (255 - r) * t)),
+            int(round(g + (255 - g) * t)),
+            int(round(b + (255 - b) * t)),
+        )
+    )
+
+
 def colors_for_keys(
-    keys: list[str] | tuple[str, ...], parent: str | None = None
+    keys: list[str] | tuple[str, ...],
+    parent: str | None = None,
+    amounts: dict[str, float] | None = None,
 ) -> dict[str, str]:
-    """Stable colour per key. Parent set → hues stepped from that hoofd colour."""
-    ordered = sorted({str(k or "") for k in keys})
+    """Stable colour per key. Parent set → FinDash palette, largest = parent hex."""
+    unique = list({str(k or "") for k in keys})
+    weights = amounts or {}
+
+    def amt(key: str) -> float:
+        try:
+            return float(weights.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0.0
+
     parent_hex = HOOFD_COLORS.get(parent or "") if parent else None
     out: dict[str, str] = {}
-    if parent_hex:
-        ph, ps, _pl = _rgb_to_hsl(_hex_to_rgb(parent_hex))
-        sat = max(50.0, min(75.0, ps))
-        for i, key in enumerate(ordered):
-            h = (ph + i * GOLDEN_ANGLE) % 360.0
-            light = 40.0 + (i % 3) * 8.0
-            out[key] = _rgb_to_hex(_hsl_to_rgb(h, sat, light))
+    if not parent_hex:
+        for i, key in enumerate(sorted(unique)):
+            if key in HOOFD_COLORS:
+                out[key] = HOOFD_COLORS[key]
+            else:
+                out[key] = FALLBACK_COLORS[i % len(FALLBACK_COLORS)]
         return out
-    for i, key in enumerate(ordered):
-        if key in HOOFD_COLORS:
-            out[key] = HOOFD_COLORS[key]
-        else:
-            out[key] = FALLBACK_COLORS[i % len(FALLBACK_COLORS)]
+    ranked = sorted(unique, key=lambda key: (-amt(key), key))
+    if ranked:
+        out[ranked[0]] = parent_hex
+    pool = [c for c in _palette_hexes() if c != parent_hex] or _palette_hexes()
+    for i, key in enumerate(ranked[1:]):
+        base = pool[i % len(pool)]
+        extra = i // len(pool)
+        out[key] = base if extra == 0 else _lighten(base, min(0.18 * extra, 0.54))
     return out
 
 

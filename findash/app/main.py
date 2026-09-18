@@ -408,12 +408,22 @@ def overview(
                     tr,
                     ns="sub" if h and not s else "hoofd",
                     parent=h if h and not s else None,
+                    amounts=(
+                        {str(r["label"]): float(r["netto"]) for r in by_s}
+                        if h and not s
+                        else None
+                    ),
                 ),
                 "chart_donut": _donut(
                     by_s if h else by_h,
                     tr,
                     "sub" if h else "hoofd",
                     parent=h if h else None,
+                    amounts=(
+                        {str(r["label"]): float(r["netto"]) for r in by_s}
+                        if h
+                        else None
+                    ),
                 ),
                 "chart_in_vs_uit": _localize_ivu(ivu, tr),
                 "chart_saving": _localize_saving(
@@ -1342,11 +1352,15 @@ def _chart_title(tr: Translator, hoofd: str | None, sub: str | None) -> str:
 
 
 def _localize_stack(
-    stack: dict[str, Any], tr: Translator, ns: str, parent: str | None = None
+    stack: dict[str, Any],
+    tr: Translator,
+    ns: str,
+    parent: str | None = None,
+    amounts: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     raw = stack.get("datasets", [])
     keys = [str(ds.get("key") or ds.get("label") or "") for ds in raw]
-    palette = colors_for_keys(keys, parent if ns == "sub" else None)
+    palette = colors_for_keys(keys, parent if ns == "sub" else None, amounts)
     datasets = []
     for ds in raw:
         key = str(ds.get("key") or ds.get("label") or "")
@@ -1429,9 +1443,10 @@ def _donut(
     tr: Translator,
     ns: str,
     parent: str | None = None,
+    amounts: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     keys = [r["label"] for r in rows]
-    palette = colors_for_keys(keys, parent if ns == "sub" else None)
+    palette = colors_for_keys(keys, parent if ns == "sub" else None, amounts)
     labels = [tr.term("sub" if ns == "sub" else "hoofd", r["label"]) for r in rows]
     return {
         "labels": labels,

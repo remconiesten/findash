@@ -48,10 +48,12 @@
     <div class="field" id="sub-wrap">{% include "partials/sub_select.html" %}</div>
   </div>
 </form>
-<div id="zoom-slot" class="zoom-bar">{% include "partials/zoom_pill.html" %}</div>
 {% endblock %}
 {% block body %}
 <div id="dashboard">
   {% include "partials/dashboard.html" %}
 </div>
+{% endblock %}
+{% block float %}
+<div id="zoom-slot" class="zoom-hud">{% include "partials/zoom_pill.html" %}</div>
 {% endblock %}

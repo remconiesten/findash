@@ -1,6 +1,6 @@
 # findash — briefing (handoff)
 
-Laatste bijwerking: 2026-09-10. Dashboard v1 draait lokaal (127.0.0.1:8088). Schema `findash` geseed. Handoff: deze briefing + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md). Nieuwe sessie starten; deze chat niet hervatten.
+Laatste bijwerking: 2026-09-18. Dashboard **v0.2.9** (app-code: `489dec3`). Briefing-park staat 1 commit voor origin tot `git push origin main`. Lokaal: `127.0.0.1:8088`. Schema `findash` geseed. Handoff: deze briefing + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md) + [`docs/addon.md`](addon.md). Nieuwe sessie starten; deze chat niet hervatten.
 
 ## Opdracht
 
@@ -34,19 +34,31 @@ Ook:
 2. MariaDB-add-on GUI: `findash` heeft `SELECT` op `n8n` (staat). Op `findash`.* heeft dezelfde user nu ALL (gebruikt om 001–003 te seeden). Optioneel later terugzetten naar SELECT, zodat de GUI-rechten een herstart overleven.
 3. Schema `findash` bestaat; `scripts/apply_findash_schema.py` heeft 001–003 gedraaid (`/health` → `findash_schema: ok`).
 
-## App-stand (2026-09-10)
+## App-stand (2026-09-18)
 
-Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on, zie [`docs/addon.md`](addon.md).
+Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on v0.2.9, zie [`docs/addon.md`](addon.md). App-code 0.2.9 stond al op origin; deze briefing-commit nog pushen.
 
-Gebouwd sinds ontwerp-goedkeuring (niet uitputtend): chrome-header + Nunito; periodechips; zoom-pil in categoriekleur; sparen/opname/netto-KPI; interne stromen van→naar onderin; inkomstentabel; transacties uitklappen onder de rij + Sluiten; info-i op zes KPI’s; favicon = koraalrood logo. CC-aflossing blijft uit de UI (wel geclassificeerd).
+Gebouwd sinds ontwerp-goedkeuring (niet uitputtend): chrome-header + Nunito; periodechips; zoom-HUD (`position: fixed`, kolom 68rem) in categoriekleur; sparen als lijn + opname/netto-KPI; interne stromen van→naar onderin; inkomstentabel; transacties uitklappen onder de rij + Sluiten; info-i op zes KPI’s; favicon = koraalrood logo. CC-aflossing blijft uit de UI (wel geclassificeerd). In vs uit: eigen rekeningen, CC-label eerst. Subkleuren: FinDash-palet min ouder-hex, canon = `vocab.sub` (niet “grootste sub = ouder”). Sub zonder hoofd: unieke ouder afleiden, anders blijven donut/stack/tabel op hoofd-grain.
 
-Import-studio: `/import-studio`. Bank-CSV en CC-PDF: preview nieuw/dubbel vóór schrijven (MD5 TransactieID op raw). Geen Raw-write. HA-add-on is v2.
+Import-studio: `/import-studio`. Bank-CSV en CC-PDF: preview nieuw/dubbel vóór schrijven (MD5 TransactieID op raw). Geen Raw-write. HA-ingress: `<base href>` + relatieve assets, `ingress_stream: true`, locale/cycle via hidden `next`. Anonymize: GUI-veld `anonymize_json` of `/share/findash/anonymize.local.json`. Dockerfile zonder `USER` (root i.v.m. `/data/options.json`).
+
+Live labels: gitignored `.env` (`FINDASH_OWN_REKENINGEN` / `FINDASH_CC_REKENING`). In git: `Rekening A`/`B`. Nooit `config/anonymize.local.json` lezen. Geen namen/IBAN’s in git of chat. GitHub-URL in `repository.yaml` is een bewuste uitzondering.
+
+## Open: Chrome grafieken na HTMX-swap
+
+Safari: oké. Chrome (MacBook): na een categorieklik **of** een periodechip vallen grafieken weg of ogen gezoomd/afgekapt. Zelfde pad: HTMX `innerHTML` op `#dashboard`, daarna `hydrate()` / `drawCharts()`. Geen cache: DevTools “disable cache” hielp niet.
+
+- **0.2.8** (`60c5a90`): retry tot `clientWidth !== 0`; auto-`scrollIntoView` op dashboard weg. Onvoldoende — Chrome geeft vaak een **verkeerde non-zero** eerste maat (o.a. 300×150 of volle rij vóór 2-koloms grid).
+- **0.2.9** (`489dec3`): canvas-CSS vecht niet meer met Chart.js (geen `absolute`/`!important`/`contain: inline-size`); altijd `resize()` op rAF + 0/50/200 ms + `htmx:afterSettle`; `ResizeObserver` op `.chart-frame`; `Chart.getChart` destroy. **Niet visueel bevestigd in Chrome** — gebruiker ging weekend vieren vóór hard-refresh-check.
+
+Eerst in Chrome (hard refresh `127.0.0.1:8088`) een periodechip **en** een categorie aanklikken. Als het stuk is: verder met layout/Chart.js (devicePixelRatio, grid-maat vóór 2 kolommen, canvas-attributen). Als het goed is: klaar, eventueel HA-add-on rebuild.
 
 ## Volgende sessie (volgorde)
 
 1. Deze briefing + `AGENTS.md` + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md).
 2. Niet buiten deze git-root.
-3. Hygiene of Qdrant: eerst ontwerp als het writes of nieuwe productvlakken zijn.
+3. Open Chrome-grafiekbug hierboven — eerst verifiëren, daarna pas code.
+4. Hygiene of Qdrant: eerst ontwerp als het writes of nieuwe productvlakken zijn.
 
 De SQL-bestanden in `docs/sql/` blijven als referentie. De add-on overschrijft tabel-GRANTs bij start met `GRANT … ON n8n.*`.
 
@@ -148,7 +160,7 @@ Gevolg voor rechten: `findash` blijft read-only; GRANT later ook `SELECT` op de 
 
 ## Volgende sessie
 
-Zie boven (App-stand) en [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md). Nieuwe chat; briefing eerst lezen.
+Zie **Open: Chrome grafieken** hierboven, daarna App-stand en [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md). Nieuwe chat; briefing eerst lezen. Weekend-park 2026-09-18.
 
 ## Bewust niet in deze repo
 

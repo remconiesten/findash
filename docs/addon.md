@@ -79,6 +79,9 @@ Add-on **FinDash → Configuratie**. Supervisor slaat dit op, niet in de image.
 | Qdrant API-key | Key uit de Qdrant-add-onconfig. Roteren: Qdrant + dit veld + laptop-`.env` in één keer. |
 | Qdrant-collectie | `findash_tx` |
 | Standaardtaal | `nl` |
+| Label CC-rekening | Zelfde string als `FINDASH_CC_REKENING` in de laptop-`.env`. |
+| Eigen rekeninglabels | Zelfde komma-lijst als `FINDASH_OWN_REKENINGEN` in de laptop-`.env`. |
+| Anonimiseer-JSON | Inhoud van `config/anonymize.local.json` (laptop). Configuratie → **YAML**-modus, plak het JSON-object. HA-backups bevatten dit veld. Niet in git, niet in chat. |
 
 **Opslaan → Starten.** Zijbalk: **FinDash** (ingress, HA-login). Optioneel poort 8088 alleen op LAN, niet guest-VLAN/internet.
 
@@ -86,12 +89,20 @@ Na een nieuwe release: op de laptop `version:` in `findash/config.yaml` ophogen,
 
 ## 4. Anonimiseren op HA (niet via git)
 
-Import-studio op HA leest `/share/findash/anonymize.local.json`.
+Voorkeur: veld **anonymize_json** in de add-onconfig (stap 3). Zelfde structuur als het laptopbestand:
 
-1. Op de laptop: je hebt al `config/anonymize.local.json` (niet openen in de chat).
-2. Op HA: **File Editor** of Studio Code → map `/share/findash/` aanmaken.
-3. Bestand `anonymize.local.json` daar neerzetten (inhoud plakken in de editor, of upload via de share). `chmod 600` in de terminal als die map dat toelaat.
-4. Geen IBANs in add-on-opties.
+```json
+{
+  "last_name": "",
+  "iban_to_label": {
+    "NL00BANK0000000001": "Rekening A"
+  }
+}
+```
+
+Labels in `iban_to_label` moeten `Rekening …` zijn, gelijk aan MariaDB en aan de velden CC-rekening / eigen rekeningen. Voorbeeld met nep-IBANs: `findash/config/anonymize.example.json`. Het echte lokale bestand niet in chat plakken.
+
+Fallback als het veld leeg is: `/share/findash/anonymize.local.json` (HASS OS: Samba-share **share**, niet de File Editor die op `/config` zit). Import-preview laadt de regels bij elke upload; na wijzigen van add-onopties wél **herstarten**.
 
 ## 5. Hostnames opzoeken
 

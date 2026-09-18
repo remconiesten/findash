@@ -35,3 +35,6 @@ configuration:
   own_rekeningen:
     name: Own account labels
     description: Comma-separated Rekening … labels that appear in the account filter. Must match MariaDB.
+  anonymize_json:
+    name: Anonymize JSON
+    description: Same JSON as config/anonymize.local.json on the laptop (last_name + iban_to_label). Paste in YAML mode. Not in git. Empty uses /share/findash/anonymize.local.json.

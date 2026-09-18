@@ -7,11 +7,6 @@ COPY app ./app
 COPY sql ./sql
 COPY run.py ./run.py
 
-RUN useradd --create-home --uid 10001 findash \
- && mkdir -p /data \
- && chown -R findash:findash /app /data
-USER findash
-
 EXPOSE 8088
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
   CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8088/health')"

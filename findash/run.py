@@ -8,6 +8,8 @@ import os
 from pathlib import Path
 
 OPTIONS = Path("/data/options.json")
+ANONYMIZE_DATA = Path("/data/anonymize.local.json")
+ANONYMIZE_SHARE = Path("/share/findash/anonymize.local.json")
 MAP = {
     "mariadb_host": "MARIADB_HOST",
     "mariadb_port": "MARIADB_PORT",
@@ -24,17 +26,58 @@ MAP = {
 }
 
 
+def env_from_options(data: object) -> dict[str, str]:
+    if not isinstance(data, dict):
+        raise SystemExit("options.json must be an object")
+    env: dict[str, str] = {}
+    for src, dest in MAP.items():
+        if src in data and data[src] is not None:
+            env[dest] = str(data[src])
+    return env
+
+
+def persist_anonymize_json(raw: object, dest: Path) -> Path | None:
+    """Write add-on anonymize_json to dest. Empty → None. Never log contents."""
+    if raw is None:
+        return None
+    if isinstance(raw, dict):
+        parsed = raw
+    else:
+        text = str(raw).strip()
+        if not text:
+            return None
+        try:
+            parsed = json.loads(text)
+        except json.JSONDecodeError:
+            raise SystemExit("anonymize_json is not valid JSON")
+    if not isinstance(parsed, dict):
+        raise SystemExit("anonymize_json must be a JSON object")
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(
+        json.dumps(parsed, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+    try:
+        dest.chmod(0o600)
+    except OSError:
+        pass
+    return dest
+
+
 def main() -> None:
     os.environ.setdefault("FINDASH_EMBED_CACHE", "/data/fastembed")
     os.environ.setdefault("FINDASH_STAGE_DIR", "/data/import")
-    os.environ.setdefault("FINDASH_ANONYMIZE", "/share/findash/anonymize.local.json")
+    os.environ.setdefault("FINDASH_ANONYMIZE", str(ANONYMIZE_SHARE))
     if OPTIONS.is_file():
         data = json.loads(OPTIONS.read_text(encoding="utf-8"))
-        if not isinstance(data, dict):
-            raise SystemExit("options.json must be an object")
-        for src, dest in MAP.items():
-            if src in data and data[src] is not None:
-                os.environ[dest] = str(data[src])
+        for key, value in env_from_options(data).items():
+            os.environ[key] = value
+        written = persist_anonymize_json(
+            data.get("anonymize_json") if isinstance(data, dict) else None,
+            ANONYMIZE_DATA,
+        )
+        if written is not None:
+            os.environ["FINDASH_ANONYMIZE"] = str(written)
     os.execvp(
         "uvicorn",
         ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8088"],

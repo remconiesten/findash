@@ -99,11 +99,14 @@ body {
   width: 100%;
   margin: 0 auto;
   padding: 1.25rem 1.25rem 3rem;
-  overflow-x: hidden;
+  overflow-x: clip;
   min-width: 0;
 }
 #dashboard { min-width: 0; max-width: 100%; }
 .chrome {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: var(--surface);
   border-radius: 22px;
   box-shadow: 0 10px 28px rgba(27, 58, 75, 0.07);
@@ -189,23 +192,13 @@ body {
   box-shadow: none;
 }
 #preset-wrap { grid-area: presets; }
-.zoom-float {
-  position: sticky;
-  top: 0.75rem;
-  z-index: 25;
+.zoom-bar {
   display: flex;
   justify-content: flex-end;
-  height: 0;
-  overflow: visible;
-  pointer-events: none;
-  margin: 0 0.15rem;
+  padding: 0 1.15rem 0.85rem;
 }
-.zoom-float:empty { display: none; }
-.zoom-float .zoom-pill {
-  pointer-events: auto;
-  transform: translateY(0.35rem);
-  max-width: min(100%, 22rem);
-}
+.zoom-bar:not(:has(.zoom-pill)) { display: none; }
+.zoom-bar .zoom-pill { max-width: min(100%, 24rem); }
 .filter-row {
   grid-area: fields;
   display: flex;
@@ -545,7 +538,7 @@ tr.active { background: #fff6e8; }
 .muted { color: var(--muted); font-size: 0.82rem; }
 .field-submit { align-self: end; }
 @media (max-width: 900px) {
-  .zoom-float .zoom-pill { max-width: min(100%, 18rem); }
+  .zoom-bar .zoom-pill { max-width: min(100%, 18rem); }
 }
 @media (max-width: 800px) {
   .charts { grid-template-columns: 1fr; }

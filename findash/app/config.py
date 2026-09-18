@@ -128,3 +128,18 @@ def own_rekeningen() -> tuple[str, ...]:
     if not out:
         raise ValueError("FINDASH_OWN_REKENINGEN is empty")
     return tuple(out)
+
+
+def chart_rekeningen(selected: str | None = None) -> tuple[str, ...]:
+    """Own accounts for charts: card account first, then the rest of own_rekeningen."""
+    if selected:
+        return (assert_rekening_label(selected),)
+    own = list(own_rekeningen())
+    cc = cc_rekening()
+    ordered: list[str] = []
+    if cc in own:
+        ordered.append(cc)
+    for acc in own:
+        if acc not in ordered:
+            ordered.append(acc)
+    return tuple(ordered)

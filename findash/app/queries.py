@@ -24,7 +24,7 @@ from app.classify import (
     salary_ym_of,
     ym_of,
 )
-from app.config import cc_rekening, own_rekeningen, sql_rekening_literal
+from app.config import cc_rekening, chart_rekeningen, own_rekeningen, sql_rekening_literal
 from app.db import TimedCursor, tx_ident
 from app.formatters import redact_text
 
@@ -425,22 +425,16 @@ def in_vs_uit(
             as_decimal(r["income"]),
             as_decimal(r["expenses"]),
         )
-    own = list(own_rekeningen())
-    if rekening:
-        accounts = [rekening]
-    else:
-        accounts = own
+    accounts = list(chart_rekeningen(rekening))
     months = months_inclusive(from_ym, to_ym)
     datasets: list[dict[str, Any]] = []
-    for acc in accounts:
-        income = []
-        expenses = []
-        for ym in months:
-            pair = by_m.get(ym, {}).get(acc, (Decimal("0"), Decimal("0")))
-            income.append(float(pair[0]))
-            expenses.append(float(pair[1]))
-        datasets.append({"key": acc, "kind": "income", "data": income})
-        datasets.append({"key": acc, "kind": "expense", "data": expenses})
+    for kind in ("income", "expense"):
+        for acc in accounts:
+            data = []
+            for ym in months:
+                pair = by_m.get(ym, {}).get(acc, (Decimal("0"), Decimal("0")))
+                data.append(float(pair[0] if kind == "income" else pair[1]))
+            datasets.append({"key": acc, "kind": kind, "data": data})
     return {"ym": months, "datasets": datasets}
 
 

@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from app.formatters import colors_for_keys, format_eur_auto, series_tone
+from app.formatters import colors_for_keys, format_eur_auto, hue_distance, series_tone
 
 
 def test_small_amounts_use_comma_decimals():
@@ -21,6 +21,7 @@ def test_sub_colors_stable_regardless_of_order():
     b = colors_for_keys(keys_b, parent)
     assert a == b
     assert a["boodschappen"] != a["hellofresh"]
+    assert hue_distance(a["boodschappen"], a["hellofresh"]) > 40
     assert a["boodschappen"] != colors_for_keys(["Huishouden"])["Huishouden"]
 
 
@@ -35,3 +36,29 @@ def test_series_tone_income_darker_than_second():
     assert series_tone("income", 1) == "#8ED0C6"
     assert series_tone("expense", 0) == "#E76F51"
     assert series_tone("expense", 1) != series_tone("expense", 0)
+
+
+def test_ivu_legend_income_accounts_then_expense_accounts():
+    from app.i18n import Translator
+    from app.main import _localize_ivu
+
+    tr = Translator("nl", {}, {})
+    out = _localize_ivu(
+        {
+            "ym": [202601],
+            "datasets": [
+                {"key": "Rekening A", "kind": "income", "data": [1]},
+                {"key": "Rekening B", "kind": "income", "data": [2]},
+                {"key": "Rekening A", "kind": "expense", "data": [3]},
+                {"key": "Rekening B", "kind": "expense", "data": [4]},
+            ],
+        },
+        tr,
+    )
+    labels = [row["label"] for row in out["datasets"]]
+    assert labels[0].startswith("Inkomsten")
+    assert labels[1].startswith("Inkomsten")
+    assert labels[2].startswith("Uitgaven")
+    assert labels[3].startswith("Uitgaven")
+    assert "Rekening A" in labels[0]
+    assert "Rekening B" in labels[1]

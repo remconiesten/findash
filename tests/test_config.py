@@ -62,3 +62,12 @@ def test_anonymize_path_from_env(monkeypatch, tmp_path):
     rules = load_anonymize_rules()
     assert rules.iban_n == 1
     assert Path(os.environ["FINDASH_ANONYMIZE"]) == target
+
+
+def test_chart_rekeningen_puts_cc_first():
+    from app.config import chart_rekeningen
+
+    ordered = chart_rekeningen()
+    assert ordered[0] == "Rekening A"
+    assert "Rekening B" in ordered
+    assert chart_rekeningen("Rekening B") == ("Rekening B",)

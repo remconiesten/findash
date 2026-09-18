@@ -62,31 +62,80 @@ def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
 
 
-def _mix(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> tuple[int, int, int]:
-    t = max(0.0, min(1.0, t))
-    return tuple(int(round(x + (y - x) * t)) for x, y in zip(a, b))  # type: ignore[return-value]
+GOLDEN_ANGLE = 137.508
 
 
-def _shade(hex_color: str, t: float) -> str:
-    rgb = _hex_to_rgb(hex_color)
-    if t < 0:
-        return _rgb_to_hex(_mix(rgb, (28, 36, 44), -t))
-    return _rgb_to_hex(_mix(rgb, (255, 248, 238), t))
+def _rgb_to_hsl(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
+    r, g, b = rgb[0] / 255.0, rgb[1] / 255.0, rgb[2] / 255.0
+    mx, mn = max(r, g, b), min(r, g, b)
+    light = (mx + mn) / 2.0
+    if mx == mn:
+        return 0.0, 0.0, light * 100.0
+    delta = mx - mn
+    sat = delta / (2.0 - mx - mn) if light > 0.5 else delta / (mx + mn)
+    if mx == r:
+        hue = (g - b) / delta + (6.0 if g < b else 0.0)
+    elif mx == g:
+        hue = (b - r) / delta + 2.0
+    else:
+        hue = (r - g) / delta + 4.0
+    return (hue / 6.0) * 360.0, sat * 100.0, light * 100.0
+
+
+def _hsl_to_rgb(h: float, s: float, light: float) -> tuple[int, int, int]:
+    h = (h % 360.0) / 360.0
+    s = max(0.0, min(100.0, s)) / 100.0
+    light = max(0.0, min(100.0, light)) / 100.0
+
+    def hue2rgb(p: float, q: float, t: float) -> float:
+        if t < 0:
+            t += 1
+        if t > 1:
+            t -= 1
+        if t < 1 / 6:
+            return p + (q - p) * 6 * t
+        if t < 1 / 2:
+            return q
+        if t < 2 / 3:
+            return p + (q - p) * (2 / 3 - t) * 6
+        return p
+
+    if s == 0:
+        v = int(round(light * 255))
+        return v, v, v
+    q = light * (1 + s) if light < 0.5 else light + s - light * s
+    p = 2 * light - q
+    r = hue2rgb(p, q, h + 1 / 3)
+    g = hue2rgb(p, q, h)
+    b = hue2rgb(p, q, h - 1 / 3)
+    return int(round(r * 255)), int(round(g * 255)), int(round(b * 255))
+
+
+def hue_of(hex_color: str) -> float:
+    return _rgb_to_hsl(_hex_to_rgb(hex_color))[0]
+
+
+def hue_distance(a: str, b: str) -> float:
+    d = abs(hue_of(a) - hue_of(b)) % 360.0
+    return min(d, 360.0 - d)
 
 
 def colors_for_keys(
     keys: list[str] | tuple[str, ...], parent: str | None = None
 ) -> dict[str, str]:
-    """Stable colour per key. Parent set → tints of that hoofd colour."""
+    """Stable colour per key. Parent set → hues stepped from that hoofd colour."""
     ordered = sorted({str(k or "") for k in keys})
-    n = len(ordered)
     parent_hex = HOOFD_COLORS.get(parent or "") if parent else None
     out: dict[str, str] = {}
+    if parent_hex:
+        ph, ps, _pl = _rgb_to_hsl(_hex_to_rgb(parent_hex))
+        sat = max(50.0, min(75.0, ps))
+        for i, key in enumerate(ordered):
+            h = (ph + i * GOLDEN_ANGLE) % 360.0
+            light = 40.0 + (i % 3) * 8.0
+            out[key] = _rgb_to_hex(_hsl_to_rgb(h, sat, light))
+        return out
     for i, key in enumerate(ordered):
-        if parent_hex:
-            t = 0.0 if n <= 1 else (i / (n - 1)) * 1.05 - 0.28
-            out[key] = _shade(parent_hex, t)
-            continue
         if key in HOOFD_COLORS:
             out[key] = HOOFD_COLORS[key]
         else:

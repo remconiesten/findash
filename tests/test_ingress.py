@@ -83,6 +83,14 @@ def test_tx_route_still_exists():
     assert resp.status_code in (200, 400, 422, 503)
 
 
+def test_saving_chart_is_line():
+    js = (ROOT / "findash/app/static/js/charts.js").read_text()
+    assert 'type: "line"' in js
+    studio = (ROOT / "findash/app/templates/studio.html").read_text()
+    assert "preset-wrap" in studio
+    assert "preset.all" in (ROOT / "findash/app/i18n.py").read_text()
+
+
 def test_charts_js_prefixes_via_app_url():
     js = (ROOT / "findash/app/static/js/charts.js").read_text()
     assert "function appUrl(" in js

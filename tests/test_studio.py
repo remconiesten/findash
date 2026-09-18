@@ -101,6 +101,7 @@ def test_studio_page_renders():
         assert "FinBotTransactionsRaw" not in resp.text
         assert "Tegenrekening" not in resp.text
         assert 'name="q"' in resp.text
+        assert "data-preset" in resp.text
 
 
 def test_subs_endpoint_returns_options_not_a_select():

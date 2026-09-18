@@ -408,28 +408,40 @@ def in_vs_uit(
     cur.execute(
         "in_vs_uit",
         f"""
-        SELECT {ym_expr} AS ym,
+        SELECT {ym_expr} AS ym, Rekening,
                COALESCE(SUM(CASE WHEN flow_kind='income' THEN bedrag ELSE 0 END), 0) AS income,
                COALESCE(SUM(CASE WHEN flow_kind='expense' THEN bedrag
                                  WHEN flow_kind='refund' THEN -bedrag ELSE 0 END), 0) AS expenses
         FROM ({union}) u
-        GROUP BY ym
+        GROUP BY ym, Rekening
         """,
         p + p,
     )
-    by_m = {
-        int(r["ym"]): (
+    by_m: dict[int, dict[str, tuple[Decimal, Decimal]]] = {}
+    for r in cur.fetchall():
+        ym = int(r["ym"])
+        rek = r["Rekening"] or ""
+        by_m.setdefault(ym, {})[rek] = (
             as_decimal(r["income"]),
             as_decimal(r["expenses"]),
         )
-        for r in cur.fetchall()
-    }
+    own = list(own_rekeningen())
+    if rekening:
+        accounts = [rekening]
+    else:
+        accounts = own
     months = months_inclusive(from_ym, to_ym)
-    return {
-        "ym": months,
-        "income": [float(by_m.get(ym, (Decimal("0"), Decimal("0")))[0]) for ym in months],
-        "expenses": [float(by_m.get(ym, (Decimal("0"), Decimal("0")))[1]) for ym in months],
-    }
+    datasets: list[dict[str, Any]] = []
+    for acc in accounts:
+        income = []
+        expenses = []
+        for ym in months:
+            pair = by_m.get(ym, {}).get(acc, (Decimal("0"), Decimal("0")))
+            income.append(float(pair[0]))
+            expenses.append(float(pair[1]))
+        datasets.append({"key": acc, "kind": "income", "data": income})
+        datasets.append({"key": acc, "kind": "expense", "data": expenses})
+    return {"ym": months, "datasets": datasets}
 
 
 def intern_monthly(

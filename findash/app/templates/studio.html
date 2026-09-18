@@ -6,7 +6,8 @@
 <form id="studio-filters" class="filter-bar studio-filters"
       method="get" action="{{ base|default('') }}/import-studio">
   <p class="studio-kicker">{{ t.ui('studio.title') }}</p>
-  <p class="hint-quiet">{{ t.ui('studio.lead') }}</p>
+  <p class="hint-quiet studio-lead">{{ t.ui('studio.lead') }}</p>
+  <div id="preset-wrap">{% include "partials/presets.html" %}</div>
   <div class="filter-row">
     <div class="field">
       <span class="field-label">{{ t.ui('studio.queue') }}</span>

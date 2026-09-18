@@ -26,7 +26,7 @@ from app.classify import (
 from app.config import load_settings
 from app.db import TimedCursor, connect, select1, ui_string_exists
 from app.embed import get_embedder
-from app.formatters import color_for, format_eur, format_eur_auto
+from app.formatters import color_for, colors_for_keys, format_eur, format_eur_auto, series_tone
 from app.i18n import LOCALES, Translator, load_translator
 from app.ingest import point_id
 from app.qdrant_io import (
@@ -404,9 +404,17 @@ def overview(
                 "by_hoofd": by_h,
                 "by_sub": by_s,
                 "chart_monthly_stack": _localize_stack(
-                    stack, tr, ns="sub" if h and not s else "hoofd"
+                    stack,
+                    tr,
+                    ns="sub" if h and not s else "hoofd",
+                    parent=h if h and not s else None,
                 ),
-                "chart_donut": _donut(by_s if h else by_h, tr, "sub" if h else "hoofd"),
+                "chart_donut": _donut(
+                    by_s if h else by_h,
+                    tr,
+                    "sub" if h else "hoofd",
+                    parent=h if h else None,
+                ),
                 "chart_in_vs_uit": _localize_ivu(ivu, tr),
                 "chart_saving": _localize_saving(
                     queries.saving_series(saving, from_ym, to_ym), tr
@@ -590,6 +598,7 @@ def import_studio(
                 "rekening": "all",
                 "drempel": str(threshold),
                 "rows": [],
+                "presets": [],
             },
             status_code=503,
         )
@@ -617,6 +626,7 @@ def import_studio(
                         "rekening": "all",
                         "drempel": str(threshold),
                         "rows": [],
+                        "presets": [],
                     },
                     status_code=503,
                 )
@@ -641,6 +651,7 @@ def import_studio(
                         "rekening": "all",
                         "drempel": str(threshold),
                         "rows": [],
+                        "presets": [],
                     },
                 )
             from_ym, to_ym = rng
@@ -670,10 +681,13 @@ def import_studio(
                     mixed_entities=mixed_entities,
                 )
             y0, y1 = queries.year_bounds(cur)
+            cycle = _cycle(request)
+            starts = _salary_starts(cur, from_ym, to_ym, cycle)
+            latest = queries.default_to_ym(cur, cycle) or to_ym
             ctx = {
                 "t": tr,
                 "locale": locale,
-                "cycle": _cycle(request),
+                "cycle": cycle,
                 "error": None,
                 "queues": MENU_QUEUES,
                 "queue": qid,
@@ -700,6 +714,14 @@ def import_studio(
                 "skipped": _int_param(request.query_params.get("skipped")),
                 "imported": _int_param(request.query_params.get("imported")),
                 "import_dupes": _int_param(request.query_params.get("import_dupes")),
+                "presets": _preset_ctx(
+                    from_ym,
+                    to_ym,
+                    cycle,
+                    starts,
+                    all_from=y0 * 100 + 1,
+                    all_to=latest,
+                ),
             }
             return render(request, "studio.html", ctx)
     finally:
@@ -1271,8 +1293,25 @@ def _preset_ctx(
     to_ym: int,
     cycle: str = "calendar",
     starts: dict | None = None,
+    all_from: int | None = None,
+    all_to: int | None = None,
 ) -> list[dict[str, Any]]:
     out = []
+    if all_from is not None and all_to is not None:
+        fy, fm = divmod(int(all_from), 100)
+        ty, tm = divmod(int(all_to), 100)
+        out.append(
+            {
+                "id": "all",
+                "from_ym": all_from,
+                "to_ym": all_to,
+                "from_year": fy,
+                "from_month": fm,
+                "to_year": ty,
+                "to_month": tm,
+                "active": int(all_from) == from_ym and int(all_to) == to_ym,
+            }
+        )
     for item in period_presets(date.today(), cycle, starts):
         fy, fm = divmod(int(item["from_ym"]), 100)
         # divmod(202609, 100) -> 2026, 9 yes
@@ -1302,15 +1341,21 @@ def _chart_title(tr: Translator, hoofd: str | None, sub: str | None) -> str:
     return tr.ui("chart.monthly_stack")
 
 
-def _localize_stack(stack: dict[str, Any], tr: Translator, ns: str) -> dict[str, Any]:
+def _localize_stack(
+    stack: dict[str, Any], tr: Translator, ns: str, parent: str | None = None
+) -> dict[str, Any]:
+    raw = stack.get("datasets", [])
+    keys = [str(ds.get("key") or ds.get("label") or "") for ds in raw]
+    palette = colors_for_keys(keys, parent if ns == "sub" else None)
     datasets = []
-    for ds in stack.get("datasets", []):
-        key = ds.get("key") or ds.get("label")
+    for ds in raw:
+        key = str(ds.get("key") or ds.get("label") or "")
         datasets.append(
             {
                 "key": key,
                 "label": tr.term(ns, key),
                 "data": ds.get("data", []),
+                "color": palette.get(key),
             }
         )
     return {
@@ -1321,12 +1366,31 @@ def _localize_stack(stack: dict[str, Any], tr: Translator, ns: str) -> dict[str,
 
 
 def _localize_ivu(ivu: dict[str, Any], tr: Translator) -> dict[str, Any]:
+    datasets = []
+    seen: dict[str, int] = {}
+    for ds in ivu.get("datasets") or []:
+        key = str(ds.get("key") or "")
+        kind = ds.get("kind") or "expense"
+        idx = seen.get(key, len(seen))
+        if key not in seen:
+            seen[key] = idx
+        kind_label = (
+            tr.ui("chart.income_series")
+            if kind == "income"
+            else tr.ui("chart.expense_series")
+        )
+        rek_label = tr.term("rekening", key) if key else ""
+        label = f"{kind_label} · {rek_label}" if rek_label else kind_label
+        datasets.append(
+            {
+                "label": label,
+                "data": ds.get("data") or [],
+                "color": series_tone(str(kind), idx),
+            }
+        )
     return {
         "labels": _labels_for_ym(ivu.get("ym") or [], tr),
-        "income": ivu.get("income", []),
-        "expenses": ivu.get("expenses", []),
-        "income_label": tr.ui("chart.income_series"),
-        "expense_label": tr.ui("chart.expense_series"),
+        "datasets": datasets,
     }
 
 
@@ -1360,14 +1424,20 @@ def _cycle_span(
     return f"{fmt(start)} – {fmt(end)}"
 
 
-def _donut(rows: list[dict[str, Any]], tr: Translator, ns: str) -> dict[str, Any]:
-    labels = [tr.term(ns if ns != "hoofd" else "hoofd", r["label"]) for r in rows]
-    if ns == "sub":
-        labels = [tr.term("sub", r["label"]) for r in rows]
+def _donut(
+    rows: list[dict[str, Any]],
+    tr: Translator,
+    ns: str,
+    parent: str | None = None,
+) -> dict[str, Any]:
+    keys = [r["label"] for r in rows]
+    palette = colors_for_keys(keys, parent if ns == "sub" else None)
+    labels = [tr.term("sub" if ns == "sub" else "hoofd", r["label"]) for r in rows]
     return {
         "labels": labels,
         "data": [float(r["netto"]) for r in rows],
-        "keys": [r["label"] for r in rows],
+        "keys": keys,
+        "colors": [palette.get(k) for k in keys],
     }
 
 

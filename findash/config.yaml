@@ -1,5 +1,5 @@
 name: FinDash
-version: "0.2.3"
+version: "0.2.4"
 slug: findash
 description: Household finance dashboard. Uses the MariaDB and Qdrant add-ons on this host.
 url: https://github.com/remconiesten/findash

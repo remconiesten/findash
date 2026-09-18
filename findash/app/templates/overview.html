@@ -4,7 +4,6 @@
       hx-get="." hx-target="#dashboard" hx-include="#filters"
       hx-push-url="true" hx-trigger="change delay:200ms">
   <div id="preset-wrap">{% include "partials/presets.html" %}</div>
-  <div id="zoom-slot">{% include "partials/zoom_pill.html" %}</div>
   <div class="filter-row">
     <div class="field">
       <span class="field-label">{{ t.ui('filter.from') }}</span>
@@ -51,6 +50,7 @@
 </form>
 {% endblock %}
 {% block body %}
+<div id="zoom-slot" class="zoom-float">{% include "partials/zoom_pill.html" %}</div>
 <div id="dashboard">
   {% include "partials/dashboard.html" %}
 </div>

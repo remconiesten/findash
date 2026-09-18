@@ -24,6 +24,17 @@ def test_add_months_rollover():
     assert add_months(202512, 1) == 202601
 
 
+def test_preset_all_comes_first():
+    from app.main import _preset_ctx
+
+    items = _preset_ctx(202601, 202609, all_from=202401, all_to=202609)
+    assert items[0]["id"] == "all"
+    assert items[0]["from_year"] == 2024
+    assert items[0]["from_month"] == 1
+    assert items[0]["active"] is False
+    assert any(p["id"] == "this_year" for p in items)
+
+
 def test_presets_september_2026():
     by_id = {p["id"]: p for p in period_presets(date(2026, 9, 9))}
     assert by_id["this_year"]["from_ym"] == 202601

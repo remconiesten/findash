@@ -182,7 +182,7 @@ function drawCharts() {
           label: ds.label,
           data: ds.data,
           key: ds.key,
-          backgroundColor: colorFor(ds.key || ds.label, i),
+          backgroundColor: ds.color || colorFor(ds.key || ds.label, i),
           stack: many ? "exp" : undefined,
         })),
       },
@@ -203,7 +203,7 @@ function drawCharts() {
         labels: donut.labels,
         datasets: [{
           data: donut.data,
-          backgroundColor: (donut.keys || donut.labels || []).map((k, i) => colorFor(k, i)),
+          backgroundColor: donut.colors || (donut.keys || donut.labels || []).map((k, i) => colorFor(k, i)),
         }],
       },
       options: baseChartOptions({
@@ -217,16 +217,23 @@ function drawCharts() {
     }));
   }
   if (ivuEl && ivu) {
+    const ivuSets = ivu.datasets || [];
     charts.push(new Chart(ivuEl, {
       type: "bar",
       data: {
         labels: ivu.labels,
-        datasets: [
-          { label: ivu.income_label || "Inkomsten", data: ivu.income, backgroundColor: "#2A9D8F" },
-          { label: ivu.expense_label || "Uitgaven", data: ivu.expenses, backgroundColor: "#E76F51" },
-        ],
+        datasets: ivuSets.map((ds) => ({
+          label: ds.label,
+          data: ds.data,
+          backgroundColor: ds.color,
+        })),
       },
-      options: baseChartOptions(),
+      options: baseChartOptions({
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: euroTooltip(),
+        },
+      }),
     }));
   }
   const saving = parseJson("chart-saving");
@@ -235,13 +242,20 @@ function drawCharts() {
     const netto = saving.netto || [];
     const colors = netto.map((v) => (Number(v) < 0 ? "#E76F51" : "#2A9D8F"));
     charts.push(new Chart(savingEl, {
-      type: "bar",
+      type: "line",
       data: {
         labels: saving.labels,
         datasets: [{
           label: saving.label || "Netto sparen",
           data: netto,
-          backgroundColor: colors,
+          borderColor: "#1B3A4B",
+          backgroundColor: "rgba(42, 157, 143, 0.14)",
+          fill: "origin",
+          tension: 0.25,
+          pointBackgroundColor: colors,
+          pointBorderColor: colors,
+          pointRadius: 4,
+          pointHoverRadius: 6,
         }],
       },
       options: baseChartOptions({
@@ -296,12 +310,16 @@ document.body.addEventListener("click", (e) => {
   const preset = e.target.closest("[data-preset]");
   if (preset) {
     e.preventDefault();
-    const form = document.getElementById("filters");
+    const form = preset.closest("form") || document.getElementById("filters");
     if (!form) return;
     form.querySelector("[name=from_year]").value = preset.dataset.fromYear;
     form.querySelector("[name=from_month]").value = preset.dataset.fromMonth;
     form.querySelector("[name=to_year]").value = preset.dataset.toYear;
     form.querySelector("[name=to_month]").value = preset.dataset.toMonth;
+    if (form.id === "studio-filters") {
+      form.submit();
+      return;
+    }
     const url = appUrl("/?" + new URLSearchParams(new FormData(form)).toString());
     if (window.htmx) {
       window.htmx.ajax("GET", url, { target: "#dashboard", swap: "innerHTML" });

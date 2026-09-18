@@ -17,21 +17,21 @@ def test_sub_colors_stable_regardless_of_order():
     keys_a = ["boodschappen", "hellofresh", "katten"]
     keys_b = list(reversed(keys_a))
     parent = "Huishouden"
-    amounts = {"boodschappen": 80, "hellofresh": 40, "katten": 10}
-    a = colors_for_keys(keys_a, parent, amounts)
-    b = colors_for_keys(keys_b, parent, amounts)
+    a = colors_for_keys(keys_a, parent)
+    b = colors_for_keys(keys_b, parent)
     assert a == b
-    assert a["boodschappen"] == HOOFD_COLORS["Huishouden"]
-    assert a["hellofresh"] == HOOFD_COLORS["Wonen"]
-    assert a["katten"] == HOOFD_COLORS["Vrije tijd"]
+    assert a["boodschappen"] != HOOFD_COLORS["Huishouden"]
+    assert a["hellofresh"] != a["boodschappen"]
     assert hue_distance(a["boodschappen"], a["hellofresh"]) > 40
 
 
-def test_largest_sub_uses_parent_pill_color():
-    pal = colors_for_keys(["klein", "groot"], "Wonen", {"klein": 1, "groot": 50})
-    assert pal["groot"] == HOOFD_COLORS["Wonen"]
-    assert pal["klein"] != pal["groot"]
-    assert pal["klein"] in HOOFD_COLORS.values()
+def test_sub_color_unchanged_when_viewed_alone():
+    parent = "Huishouden"
+    canon = ["boodschappen", "hellofresh", "katten"]
+    grouped = colors_for_keys(canon, parent, canon)
+    alone = colors_for_keys(["hellofresh"], parent, canon)
+    assert alone["hellofresh"] == grouped["hellofresh"]
+    assert alone["hellofresh"] != HOOFD_COLORS[parent]
 
 
 def test_hoofd_colors_keep_named_palette():

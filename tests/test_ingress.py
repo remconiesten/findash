@@ -87,6 +87,7 @@ def test_zoom_hud_is_fixed():
     css = (ROOT / "findash/app/static/css/app.css").read_text()
     assert "position: fixed" in css
     assert ".zoom-hud" in css
+    assert "min(68rem" in css
     html = (ROOT / "findash/app/templates/base.html").read_text()
     assert "block float" in html
 

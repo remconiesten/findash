@@ -191,15 +191,24 @@ body {
 #preset-wrap { grid-area: presets; }
 .zoom-hud {
   position: fixed;
-  top: 1.15rem;
-  right: 1.15rem;
+  top: 0;
+  left: 50%;
+  width: min(68rem, 100%);
+  transform: translateX(-50%);
   z-index: 50;
+  box-sizing: border-box;
   pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1.25rem 1.25rem 0;
+  height: calc(1.25rem + 0.85rem + 36px + 0.85rem);
 }
 .zoom-hud:not(:has(.zoom-pill)) { display: none; }
 .zoom-hud .zoom-pill {
   pointer-events: auto;
-  max-width: min(calc(100vw - 2.3rem), 22rem);
+  margin-right: 1.15rem;
+  max-width: min(22rem, calc(100% - 8rem));
 }
 .filter-row {
   grid-area: fields;
@@ -545,8 +554,8 @@ tr.active { background: #fff6e8; }
   .page { padding: 0.85rem 0.85rem 2.5rem; }
   .chrome { border-radius: 18px; }
   .zoom-hud {
-    top: auto;
-    bottom: 1rem;
-    right: 1rem;
+    padding: 0.85rem 0.85rem 0;
+    height: calc(0.85rem + 0.85rem + 36px + 0.85rem);
   }
+  .zoom-hud .zoom-pill { max-width: min(16rem, calc(100% - 5rem)); }
 }

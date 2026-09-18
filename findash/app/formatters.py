@@ -139,35 +139,29 @@ def _lighten(hex_color: str, t: float) -> str:
 def colors_for_keys(
     keys: list[str] | tuple[str, ...],
     parent: str | None = None,
-    amounts: dict[str, float] | None = None,
+    canon: list[str] | tuple[str, ...] | None = None,
 ) -> dict[str, str]:
-    """Stable colour per key. Parent set → FinDash palette, largest = parent hex."""
-    unique = list({str(k or "") for k in keys})
-    weights = amounts or {}
-
-    def amt(key: str) -> float:
-        try:
-            return float(weights.get(key) or 0)
-        except (TypeError, ValueError):
-            return 0.0
-
+    """Stable colour per key. Parent set → FinDash palette, never the parent hex."""
+    unique = [str(k or "") for k in dict.fromkeys(keys)]
     parent_hex = HOOFD_COLORS.get(parent or "") if parent else None
     out: dict[str, str] = {}
     if not parent_hex:
-        for i, key in enumerate(sorted(unique)):
+        for i, key in enumerate(sorted(set(unique))):
             if key in HOOFD_COLORS:
                 out[key] = HOOFD_COLORS[key]
             else:
                 out[key] = FALLBACK_COLORS[i % len(FALLBACK_COLORS)]
         return out
-    ranked = sorted(unique, key=lambda key: (-amt(key), key))
-    if ranked:
-        out[ranked[0]] = parent_hex
+    universe = [str(k or "") for k in (canon or unique)]
+    universe = sorted({*universe, *unique})
     pool = [c for c in _palette_hexes() if c != parent_hex] or _palette_hexes()
-    for i, key in enumerate(ranked[1:]):
+    assigned: dict[str, str] = {}
+    for i, key in enumerate(universe):
         base = pool[i % len(pool)]
         extra = i // len(pool)
-        out[key] = base if extra == 0 else _lighten(base, min(0.18 * extra, 0.54))
+        assigned[key] = base if extra == 0 else _lighten(base, min(0.18 * extra, 0.54))
+    for key in unique:
+        out[key] = assigned[key]
     return out
 
 

@@ -319,7 +319,6 @@ select {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  contain: inline-size;
 }
 .charts figure.chart-wide { grid-column: 1 / -1; }
 figure {
@@ -329,8 +328,6 @@ figure {
   margin: 0;
   min-width: 0;
   max-width: 100%;
-  overflow: hidden;
-  isolation: isolate;
 }
 .chart-frame {
   position: relative;
@@ -338,18 +335,12 @@ figure {
   max-width: 100%;
   min-width: 0;
   aspect-ratio: 16 / 9;
-  overflow: hidden;
 }
 .charts figure:nth-child(2) .chart-frame {
   aspect-ratio: 1 / 1;
 }
 .chart-frame canvas {
-  position: absolute;
-  inset: 0;
   display: block;
-  width: 100% !important;
-  height: 100% !important;
-  max-width: 100% !important;
 }
 figcaption { font-weight: 600; margin-bottom: 0.5rem; }
 .table-wrap { margin-top: 1.5rem; max-width: 100%; min-width: 0; overflow-x: auto; }

@@ -28,8 +28,18 @@ function destroyCharts() {
     chartRo.disconnect();
     chartRo = null;
   }
-  charts.forEach((c) => c.destroy());
+  charts.forEach((c) => {
+    try { c.destroy(); } catch (_err) { /* ignore */ }
+  });
   charts = [];
+  ["c-monthly", "c-donut", "c-ivu", "c-saving"].forEach((id) => {
+    const el = document.getElementById(id);
+    if (!el || typeof Chart === "undefined" || !Chart.getChart) return;
+    const inst = Chart.getChart(el);
+    if (inst) {
+      try { inst.destroy(); } catch (_err) { /* ignore */ }
+    }
+  });
 }
 
 function colorFor(key, i) {
@@ -161,7 +171,7 @@ function bindChartResize() {
   }
   if (typeof ResizeObserver !== "function") return;
   chartRo = new ResizeObserver(() => resizeCharts());
-  document.querySelectorAll(".charts, .saving-mini").forEach((el) => chartRo.observe(el));
+  document.querySelectorAll(".chart-frame").forEach((el) => chartRo.observe(el));
 }
 
 function drawCharts() {
@@ -292,14 +302,8 @@ function drawCharts() {
 function hydrate() {
   const run = () => {
     drawCharts();
-    const polish = (n) => {
-      resizeCharts();
-      const el = document.getElementById("c-monthly");
-      if (el && el.clientWidth === 0 && n < 12) {
-        requestAnimationFrame(() => polish(n + 1));
-      }
-    };
-    requestAnimationFrame(() => polish(0));
+    requestAnimationFrame(resizeCharts);
+    [0, 50, 200].forEach((ms) => window.setTimeout(resizeCharts, ms));
   };
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(() => requestAnimationFrame(run));
@@ -401,5 +405,10 @@ document.body.addEventListener("htmx:afterSwap", (e) => {
   }
   if (target && target.id === "dashboard") {
     hydrate();
+  }
+});
+document.body.addEventListener("htmx:afterSettle", (e) => {
+  if (e.detail && e.detail.target && e.detail.target.id === "dashboard") {
+    resizeCharts();
   }
 });

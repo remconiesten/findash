@@ -92,10 +92,20 @@ def test_zoom_hud_is_fixed():
     assert "block float" in html
 
 
+def test_chart_css_lets_chartjs_size_canvas():
+    css = (ROOT / "findash/app/static/css/app.css").read_text()
+    assert "contain: inline-size" not in css
+    canvas_block = css.split(".chart-frame canvas")[1].split("figcaption")[0]
+    assert "!important" not in canvas_block
+    assert "position: absolute" not in canvas_block
+
+
 def test_saving_chart_is_line():
     js = (ROOT / "findash/app/static/js/charts.js").read_text()
     assert 'type: "line"' in js
-    assert "clientWidth === 0" in js
+    assert "htmx:afterSettle" in js
+    assert "setTimeout(resizeCharts" in js
+    assert "Chart.getChart" in js
     assert 'target.id === "dashboard"' in js
     assert "chart-time" not in js
     studio = (ROOT / "findash/app/templates/studio.html").read_text()

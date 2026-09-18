@@ -274,6 +274,18 @@ def set_cycle(
     return resp
 
 
+def chart_grain(hoofd: str | None, sub: str | None) -> str:
+    return "sub" if hoofd or sub else "hoofd"
+
+
+def _focus_color(hoofd: str | None, sub: str | None, canon: list[str] | None) -> str:
+    if hoofd:
+        return color_for(hoofd)
+    if sub:
+        return colors_for_keys([sub], parent=None, canon=canon).get(sub) or "#E76F51"
+    return "#E76F51"
+
+
 @app.get("/", response_class=HTMLResponse)
 def overview(
     request: Request,
@@ -337,6 +349,8 @@ def overview(
             rek = _str_param(rekening)
             h = _str_param(hoofd)
             s = _str_param(sub)
+            if s and not h:
+                h = queries.unique_hoofd_for_sub(cur, s) or h
             starts = _salary_starts(cur, from_ym, to_ym, cycle)
             vocab = queries.filter_vocab(cur, h)
             kpis = queries.kpis(
@@ -346,6 +360,7 @@ def overview(
             kpis["n_months"] = n_months
             kpis["avg_month"] = kpis["expenses_net"] / n_months
             kpis["avg_income"] = kpis["income"] / n_months
+            grain = chart_grain(h, s)
             by_h = queries.by_groep(
                 cur, from_ym, to_ym, rek, h, s, "hoofd", cycle=cycle, starts=starts
             )
@@ -353,10 +368,9 @@ def overview(
                 queries.by_groep(
                     cur, from_ym, to_ym, rek, h, s, "sub", cycle=cycle, starts=starts
                 )
-                if h
+                if grain == "sub"
                 else []
             )
-            grain = "sub" if h else "hoofd"
             stack = queries.monthly_stack(
                 cur, from_ym, to_ym, rek, h, s, grain=grain, cycle=cycle, starts=starts
             )
@@ -406,26 +420,26 @@ def overview(
                 "chart_monthly_stack": _localize_stack(
                     stack,
                     tr,
-                    ns="sub" if h else "hoofd",
-                    parent=h if h else None,
-                    canon=vocab.get("sub") if h else None,
+                    ns=grain,
+                    parent=h if grain == "sub" else None,
+                    canon=vocab.get("sub") if grain == "sub" else None,
                 ),
                 "chart_donut": _donut(
-                    by_s if h else by_h,
+                    by_s if grain == "sub" else by_h,
                     tr,
-                    "sub" if h else "hoofd",
-                    parent=h if h else None,
-                    canon=vocab.get("sub") if h else None,
+                    grain,
+                    parent=h if grain == "sub" else None,
+                    canon=vocab.get("sub") if grain == "sub" else None,
                 ),
                 "chart_in_vs_uit": _localize_ivu(ivu, tr),
                 "chart_saving": _localize_saving(
                     queries.saving_series(saving, from_ym, to_ym), tr
                 ),
                 "chart_title": _chart_title(tr, h, s),
-                "drill_level": "sub" if h and not s else ("none" if s else "hoofd"),
+                "drill_level": "none" if s else ("sub" if h else "hoofd"),
                 "focus_hoofd": h,
                 "focus_sub": s,
-                "focus_color": color_for(h),
+                "focus_color": _focus_color(h, s, vocab.get("sub")),
                 "presets": _preset_ctx(from_ym, to_ym, cycle, starts),
                 "intern": intern,
                 "intern_sum": intern_sum,

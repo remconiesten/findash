@@ -292,7 +292,14 @@ function drawCharts() {
 function hydrate() {
   const run = () => {
     drawCharts();
-    resizeCharts();
+    const polish = (n) => {
+      resizeCharts();
+      const el = document.getElementById("c-monthly");
+      if (el && el.clientWidth === 0 && n < 12) {
+        requestAnimationFrame(() => polish(n + 1));
+      }
+    };
+    requestAnimationFrame(() => polish(0));
   };
   if (typeof requestAnimationFrame === "function") {
     requestAnimationFrame(() => requestAnimationFrame(run));
@@ -394,9 +401,5 @@ document.body.addEventListener("htmx:afterSwap", (e) => {
   }
   if (target && target.id === "dashboard") {
     hydrate();
-    const time = document.getElementById("chart-time");
-    if (time && document.querySelector(".zoom-pill")) {
-      time.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
   }
 });

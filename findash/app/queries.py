@@ -182,6 +182,25 @@ def filter_vocab(
     return {"rekening": rekeningen, "hoofd": hoofden, "sub": subs}
 
 
+def unique_hoofd_for_sub(cur: TimedCursor, sub: str) -> str | None:
+    cur.execute(
+        "hoofd_for_sub",
+        f"""
+        SELECT DISTINCT Hoofdcategorie AS h FROM (
+          SELECT Hoofdcategorie, Subcategorie FROM {tx_ident("FinBotTransactions")}
+          UNION
+          SELECT Hoofdcategorie, Subcategorie FROM {tx_ident("FinBotTransactionsCC")}
+        ) t
+        WHERE Subcategorie = %s
+        """,
+        [sub],
+    )
+    found = [row["h"] for row in cur.fetchall() if row["h"]]
+    if len(found) == 1:
+        return found[0]
+    return None
+
+
 def _cat_sql(hoofd: str | None, sub: str | None) -> tuple[str, list[Any]]:
     sql = ""
     params: list[Any] = []

@@ -34,6 +34,14 @@ def test_sub_color_unchanged_when_viewed_alone():
     assert alone["hellofresh"] != HOOFD_COLORS[parent]
 
 
+def test_chart_grain_sub_without_hoofd():
+    from app.main import chart_grain
+
+    assert chart_grain(None, "boodschappen") == "sub"
+    assert chart_grain("Huishouden", None) == "sub"
+    assert chart_grain(None, None) == "hoofd"
+
+
 def test_hoofd_colors_keep_named_palette():
     palette = colors_for_keys(["Wonen", "Vervoer"])
     assert palette["Wonen"] == "#2A9D8F"

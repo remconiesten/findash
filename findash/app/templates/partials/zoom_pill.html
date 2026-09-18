@@ -1,9 +1,9 @@
-{% if focus_hoofd %}
+{% if focus_hoofd or focus_sub %}
 <div class="zoom-pill" style="--focus: {{ focus_color }}">
   <span class="zoom-kicker">{{ t.ui('zoom.now') }}</span>
   <span class="zoom-copy">
     <span class="zoom-name">
-      {{ t.term('hoofd', focus_hoofd) }}{% if focus_sub %} · {{ t.term('sub', focus_sub) }}{% endif %}
+      {% if focus_hoofd %}{{ t.term('hoofd', focus_hoofd) }}{% endif %}{% if focus_hoofd and focus_sub %} · {% endif %}{% if focus_sub %}{{ t.term('sub', focus_sub) }}{% endif %}
     </span>
     {% if kpis %}
     <span class="zoom-avg">{{ t.ui('kpi.avg_month') }} {{ kpis.avg_month|eur_auto(locale) }}</span>

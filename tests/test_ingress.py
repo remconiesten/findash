@@ -95,6 +95,9 @@ def test_zoom_hud_is_fixed():
 def test_saving_chart_is_line():
     js = (ROOT / "findash/app/static/js/charts.js").read_text()
     assert 'type: "line"' in js
+    assert "clientWidth === 0" in js
+    assert 'target.id === "dashboard"' in js
+    assert "chart-time" not in js
     studio = (ROOT / "findash/app/templates/studio.html").read_text()
     assert "preset-wrap" in studio
     assert "preset.all" in (ROOT / "findash/app/i18n.py").read_text()

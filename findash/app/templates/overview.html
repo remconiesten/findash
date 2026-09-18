@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block toolbar %}
 <form id="filters" class="filter-bar"
-      hx-get="{{ base|default('') }}/" hx-target="#dashboard" hx-include="#filters"
+      hx-get="." hx-target="#dashboard" hx-include="#filters"
       hx-push-url="true" hx-trigger="change delay:200ms">
   <div id="preset-wrap">{% include "partials/presets.html" %}</div>
   <div id="zoom-slot">{% include "partials/zoom_pill.html" %}</div>

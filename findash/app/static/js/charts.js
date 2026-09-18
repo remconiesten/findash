@@ -58,6 +58,13 @@ function euroTooltip() {
   };
 }
 
+function appUrl(path) {
+  const href = (document.querySelector("base") && document.querySelector("base").getAttribute("href")) || "/";
+  const rel = String(path || "").replace(/^\//, "");
+  const resolved = new URL(rel, new URL(href, window.location.origin));
+  return resolved.pathname + resolved.search;
+}
+
 function applyDrill(level, key) {
   const form = document.getElementById("filters");
   const hoofd = document.getElementById("hoofd");
@@ -72,7 +79,7 @@ function applyDrill(level, key) {
   } else if (level === "sub") {
     if (sub) sub.value = key;
   }
-  const url = "/?" + new URLSearchParams(new FormData(form)).toString();
+  const url = appUrl("/?" + new URLSearchParams(new FormData(form)).toString());
   if (window.htmx) {
     window.htmx.ajax("GET", url, { target: "#dashboard", swap: "innerHTML" });
     history.pushState({}, "", url);
@@ -245,7 +252,7 @@ document.body.addEventListener("click", (e) => {
     form.querySelector("[name=from_month]").value = preset.dataset.fromMonth;
     form.querySelector("[name=to_year]").value = preset.dataset.toYear;
     form.querySelector("[name=to_month]").value = preset.dataset.toMonth;
-    const url = "/?" + new URLSearchParams(new FormData(form)).toString();
+    const url = appUrl("/?" + new URLSearchParams(new FormData(form)).toString());
     if (window.htmx) {
       window.htmx.ajax("GET", url, { target: "#dashboard", swap: "innerHTML" });
       history.pushState({}, "", url);
@@ -286,7 +293,7 @@ document.body.addEventListener("click", (e) => {
     if (tx.dataset.txHoofd) params.set("tx_hoofd", tx.dataset.txHoofd);
     if (tx.dataset.van !== undefined) params.set("tx_van", tx.dataset.van);
     if (tx.dataset.naar !== undefined) params.set("tx_naar", tx.dataset.naar);
-    const url = "/tx?" + params.toString();
+    const url = appUrl("/tx?" + params.toString());
     const body = embed.querySelector(".tx-embed-body");
     if (window.htmx) {
       window.htmx.ajax("GET", url, { target: body, swap: "innerHTML" });

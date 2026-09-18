@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block top_nav %}
-<a class="nav-studio" href="{{ base|default('') }}/import-studio">{{ t.ui('import.back_studio') }}</a>
+<a class="nav-studio" href="import-studio">{{ t.ui('import.back_studio') }}</a>
 {% endblock %}
 {% block body %}
 <h1 class="import-title">{{ t.ui('import.preview_title') }}</h1>
@@ -17,7 +17,7 @@
   <article><h2>{{ t.ui('import.err') }}</h2><p class="num coral">{{ preview.n_err }}</p></article>
 </section>
 <p class="hint-quiet">{{ t.ui('import.kind.' + preview.kind) }} · {{ t.ui('import.hash_note') }} · {{ t.ui('import.tone_help') }}</p>
-<form method="post" action="{{ base|default('') }}/import-studio/commit" class="import-commit">
+<form method="post" action="import-studio/commit" class="import-commit">
   <input type="hidden" name="token" value="{{ token }}">
 <table class="studio-table">
   <thead>
@@ -56,7 +56,7 @@
         {% if row.status=='nieuw' %}
         <div class="studio-form">
           <select name="hoofd-{{ row.txid }}"
-                  hx-get="{{ base|default('') }}/import-studio/subs"
+                  hx-get="import-studio/subs"
                   hx-target="#sub-imp-{{ row.txid }}"
                   hx-vals="js:{hoofd: event.target.value}">
             {% for h in hoofden %}
@@ -97,11 +97,11 @@
 {% if preview.n_new %}
   <p class="studio-bulk">
     <button type="submit" class="tx-close">{{ t.ui('import.commit') }} ({{ preview.n_new }})</button>
-    <a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.cancel') }}</a>
+    <a class="linkish" href="import-studio">{{ t.ui('import.cancel') }}</a>
   </p>
 {% else %}
 <p class="banner">{{ t.ui('import.nothing_new') }}</p>
-<a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.back_studio') }}</a>
+<a class="linkish" href="import-studio">{{ t.ui('import.back_studio') }}</a>
 {% endif %}
 </form>
 {% endif %}

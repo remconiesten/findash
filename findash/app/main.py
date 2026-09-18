@@ -85,10 +85,7 @@ app.mount("/static", StaticFiles(directory=str(ROOT / "static")), name="static")
 
 @app.middleware("http")
 async def ingress_prefix(request: Request, call_next):
-    raw = (request.headers.get("x-ingress-path") or "").rstrip("/")
-    request.state.base = raw
-    if raw:
-        request.scope["root_path"] = raw
+    request.state.base = (request.headers.get("x-ingress-path") or "").rstrip("/")
     return await call_next(request)
 
 

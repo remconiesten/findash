@@ -1,0 +1,9 @@
+{% if sid %}<select name="sub" id="{{ sid }}">{% endif %}
+{% if not subs %}
+<option value="" disabled selected>{{ t.ui('studio.no_sub') }}</option>
+{% else %}
+{% for s in subs %}
+<option value="{{ s }}" {{ 'selected' if loop.first else '' }}>{{ t.term('sub', s) }}</option>
+{% endfor %}
+{% endif %}
+{% if sid %}</select>{% endif %}

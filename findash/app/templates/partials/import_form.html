@@ -1,0 +1,14 @@
+<form class="import-form" method="post" action="{{ base|default('') }}/import-studio/preview" enctype="multipart/form-data">
+  <div class="field">
+    <span class="field-label">{{ t.ui('import.bank_csv') }}</span>
+    <input type="file" name="bank_csv" accept=".csv,text/csv">
+  </div>
+  <div class="field">
+    <span class="field-label">{{ t.ui('import.cc_pdf') }}</span>
+    <input type="file" name="cc_pdf" accept="application/pdf,.pdf">
+  </div>
+  <div class="field field-submit">
+    <button type="submit" class="tx-close">{{ t.ui('import.preview') }}</button>
+  </div>
+</form>
+<p class="hint-quiet">{{ t.ui('import.hint') }}</p>

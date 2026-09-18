@@ -1,0 +1,10 @@
+{
+  "last_name": "",
+  "iban_to_label": {
+    "NL00BANK0000000001": "Rekening A",
+    "NL00BANK0000000002": "Rekening A",
+    "NL00BANK0000000003": "Rekening B",
+    "NL00BANK0000000004": "Rekening C",
+    "NL00BANK0000000005": "Rekening D"
+  }
+}

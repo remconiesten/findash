@@ -1,0 +1,128 @@
+<tr id="studio-row-{{ row.src }}-{{ row.transactie_id }}" class="{% if row.bulk_ok and row.above %}studio-hot{% endif %}{% if 'shop_saving_large' in (row.flags or []) or 'knn_split' in (row.flags or []) or 'split_text' in (row.flags or []) or 'mixed_entity' in (row.flags or []) %} studio-warn{% endif %}">
+  <td>
+    {% if row.bulk_ok %}
+    <input form="bulk-form" class="sel-row" type="checkbox" name="sel" value="{{ row.src }}:{{ row.transactie_id }}" checked>
+    {% else %}
+    <input form="bulk-form" class="sel-row" type="checkbox" name="sel" value="{{ row.src }}:{{ row.transactie_id }}">
+    {% endif %}
+  </td>
+  <td>{{ '%04d-%02d-%02d'|format(row.jaar, row.maand, row.dag) }}</td>
+  <td>{{ t.term('rekening', row.rekening) }}</td>
+  <td>{{ t.term('af_bij', row.richting) }}</td>
+  <td>{{ row.bedrag | eur(locale) }}</td>
+  <td>
+    <div>{{ row.omschrijving }}</div>
+    {% if row.entiteit %}<div class="muted">{{ row.entiteit }}</div>{% endif %}
+  </td>
+  <td>
+    {{ t.term('hoofd', row.hoofd) }} / {{ t.term('sub', row.sub) }}
+    {% if row.corrected %}<div class="muted">{{ t.ui('studio.queue.corrected') }}</div>{% endif %}
+  </td>
+  <td>
+    {% if row.flags %}
+      <div class="studio-flags">
+        {% for f in row.flags %}
+        <span class="studio-flag">{{ t.ui('studio.flag.' + f) }}</span>
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if row.suggest %}
+      {{ t.term('hoofd', row.suggest.hoofd) }} / {{ t.term('sub', row.suggest.sub) }}
+      {% if row.suggest.source == 'regel' %}<span class="muted">{{ t.ui('studio.rule') }}</span>{% endif %}
+      {% if row.suggest.source == 'text' %}
+      <div class="{{ 'studio-score-hot' if row.above and row.bulk_ok else 'muted' }}">
+        {{ t.ui('studio.source.text') }}{% if row.suggest.n %} ×{{ row.suggest.n }}{% endif %}
+      </div>
+      {% elif row.suggest.source == 'knn' %}
+      <div class="{{ 'studio-score-hot' if row.above and row.bulk_ok else 'muted' }}">
+        {{ t.ui('studio.source.knn') }}
+      </div>
+      {% elif row.suggest.score is not none %}
+      <div class="{{ 'studio-score-hot' if row.above and row.bulk_ok else 'muted' }}">
+        {{ t.ui('studio.similarity') }} {{ '%.3f'|format(row.suggest.score) }}
+        {% if row.above and row.bulk_ok %} · {{ t.ui('studio.above') }}{% endif %}
+        {% if not row.corrected %}<div class="muted">{{ t.ui('studio.score_live') }}</div>{% endif %}
+      </div>
+      {% endif %}
+      {% if row.suggest.split and row.suggest.split|length > 1 %}
+      <div class="studio-split">
+        <span>{{ t.ui('studio.split') }}</span>
+        {% for p in row.suggest.split %}
+        <span>{{ t.term('hoofd', p.hoofd) }} / {{ t.term('sub', p.sub) }} ×{{ p.n }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% else %}
+      <span class="muted">{{ t.ui('studio.no_auto') }}</span>
+    {% endif %}
+  </td>
+  <td class="studio-edit">
+    <form class="studio-correct" method="post" action="{{ base|default('') }}/import-studio/correct" novalidate
+          hx-post="{{ base|default('') }}/import-studio/correct" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
+      <div class="studio-form">
+      <input type="hidden" name="src" value="{{ row.src }}">
+      <input type="hidden" name="transactie_id" value="{{ row.transactie_id }}">
+      <input type="hidden" name="drempel" value="{{ drempel }}">
+      <input type="hidden" name="score" value="{% if row.suggest and row.suggest.score is defined and row.suggest.score is not none %}{{ '%.4f'|format(row.suggest.score) }}{% endif %}">
+      <label>
+        <span class="field-label">{{ t.ui('filter.hoofd') }}</span>
+        <select name="hoofd" required
+                hx-get="{{ base|default('') }}/import-studio/subs?sid=sub-{{ row.src }}-{{ row.transactie_id }}"
+                hx-target="#sub-{{ row.src }}-{{ row.transactie_id }}"
+                hx-swap="outerHTML">
+          {% for h in hoofden %}
+          <option value="{{ h }}" {{ 'selected' if (row.suggest.hoofd if row.suggest else row.hoofd)==h else '' }}>{{ t.term('hoofd', h) }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        <span class="field-label">{{ t.ui('filter.sub') }}</span>
+        <select name="sub" id="sub-{{ row.src }}-{{ row.transactie_id }}">
+          {% set cur_h = row.suggest.hoofd if row.suggest else row.hoofd %}
+          {% set cur_s = row.suggest.sub if row.suggest else row.sub %}
+          {% for s in subs_by_hoofd.get(cur_h, []) %}
+          <option value="{{ s }}" {{ 'selected' if cur_s==s else '' }}>{{ t.term('sub', s) }}</option>
+          {% endfor %}
+          {% if cur_s and cur_s not in (subs_by_hoofd.get(cur_h, []) or []) %}
+          <option value="{{ cur_s }}" selected>{{ t.term('sub', cur_s) }}</option>
+          {% endif %}
+        </select>
+      </label>
+      <label class="studio-sub-new">
+        <span class="field-label">{{ t.ui('studio.sub_new') }}</span>
+        <input type="text" name="sub_new" class="studio-free" placeholder="{{ t.ui('studio.sub_new_ph') }}" maxlength="191" title="{{ t.ui('studio.sub_new_hint') }}" onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+      </label>
+      <label>
+        <span class="field-label">{{ t.ui('studio.entiteit') }}</span>
+        <input type="text" name="entiteit" class="studio-free" list="ent-{{ row.src }}-{{ row.transactie_id }}"
+               value="{{ row.suggest.entiteit if row.suggest and row.suggest.entiteit else row.entiteit }}"
+               placeholder="{{ t.ui('studio.entiteit') }}" maxlength="191"
+               onkeydown="if(event.key==='Enter'){event.preventDefault();}">
+      </label>
+      <datalist id="ent-{{ row.src }}-{{ row.transactie_id }}">
+        {% if row.entiteit %}<option value="{{ row.entiteit }}"></option>{% endif %}
+        {% for e in row.entity_options or [] %}
+        <option value="{{ e }}"></option>
+        {% endfor %}
+      </datalist>
+      <button type="submit" class="tx-close studio-save">{{ t.ui('studio.save') }}</button>
+      <p class="studio-save-err" hidden>{{ t.ui('studio.save_fail') }}</p>
+      </div>
+    </form>
+    <div class="studio-links">
+      {% if row.corrected %}
+      <form method="post" action="{{ base|default('') }}/import-studio/undo"
+            hx-post="{{ base|default('') }}/import-studio/undo" hx-target="#studio-row-{{ row.src }}-{{ row.transactie_id }}" hx-swap="outerHTML">
+        <input type="hidden" name="src" value="{{ row.src }}">
+        <input type="hidden" name="transactie_id" value="{{ row.transactie_id }}">
+        <input type="hidden" name="drempel" value="{{ drempel }}">
+        <button type="submit" class="linkish">{{ t.ui('studio.undo') }}</button>
+      </form>
+      {% endif %}
+      <button type="button" class="linkish"
+              hx-get="{{ base|default('') }}/import-studio/neighbors"?src={{ row.src }}&transactie_id={{ row.transactie_id }}"
+              hx-target="#nb-{{ row.src }}-{{ row.transactie_id }}">{{ t.ui('studio.neighbors') }}</button>
+    </div>
+    <div id="nb-{{ row.src }}-{{ row.transactie_id }}"></div>
+  </td>
+</tr>

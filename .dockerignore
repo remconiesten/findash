@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+**/anonymize.local.json
+config/anonymize.local.json
+findash/config/anonymize.local.json
+.venv
+__pycache__
+.pytest_cache
+.cache
+.git
+*.pyc
+.DS_Store

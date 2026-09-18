@@ -1,0 +1,46 @@
+<div class="tx-embed-inner">
+  <div class="tx-embed-head">
+    <p class="tx-context">
+      {{ t.ui('tx.title') }}
+      · {{ t.ui('tx.kind.' + tx.kind) }}
+      {% if tx_hoofd %} · {{ t.term('hoofd', tx_hoofd) }}{% endif %}
+      {% if tx_sub %} · {{ t.term('sub', tx_sub) }}{% endif %}
+      {% if tx_year and tx_month %} · {{ t.month(tx_month) }} {{ tx_year }}{% endif %}
+      {% if tx_rekening %} · {{ t.term('rekening', tx_rekening) }}{% endif %}
+    </p>
+    <button type="button" class="tx-close" data-tx-close>{{ t.ui('tx.close') }}</button>
+  </div>
+  {% if tx.rows %}
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('inspect.col.date') }}</th>
+        <th>{{ t.ui('inspect.col.rekening') }}</th>
+        <th>{{ t.ui('inspect.col.af_bij') }}</th>
+        <th>{{ t.ui('inspect.col.amount') }}</th>
+        <th>{{ t.ui('table.hoofd') }}</th>
+        <th>{{ t.ui('table.sub') }}</th>
+        <th>{{ t.ui('inspect.col.desc') }}</th>
+        <th>{{ t.ui('inspect.col.src') }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in tx.rows %}
+      <tr>
+        <td>{{ r.datum }}</td>
+        <td>{{ t.term('rekening', r.Rekening) }}</td>
+        <td>{{ t.term('af_bij', r.af_bij) }}</td>
+        <td>{{ r.bedrag|eur(locale) }}</td>
+        <td>{{ t.term('hoofd', r.Hoofdcategorie) }}</td>
+        <td>{{ t.term('sub', r.Subcategorie) }}</td>
+        <td>{{ r.omschrijving }}</td>
+        <td>{{ t.ui('tx.src.' + r.src) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if tx.truncated %}<p class="hint-quiet">{{ t.ui('tx.truncated') }}</p>{% endif %}
+  {% else %}
+  <p>{{ t.ui('tx.empty') }}</p>
+  {% endif %}
+</div>

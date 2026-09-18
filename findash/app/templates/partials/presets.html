@@ -1,0 +1,8 @@
+<div class="presets">
+  {% for p in presets %}
+  <button type="button" class="preset {{ 'active' if p.active else '' }}"
+          data-preset
+          data-from-year="{{ p.from_year }}" data-from-month="{{ p.from_month }}"
+          data-to-year="{{ p.to_year }}" data-to-month="{{ p.to_month }}">{{ t.ui('preset.' + p.id) }}</button>
+  {% endfor %}
+</div>

@@ -1,0 +1,19 @@
+# Mode B (optional). MariaDB stays on the HA add-on — not in this compose.
+# From Docker Desktop the HA host must be reachable as MARIADB_HOST
+# (LAN IP or host.docker.internal). Preferred v1 run is mode A:
+#   .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088
+services:
+  web:
+    build: ./findash
+    ports:
+      - "127.0.0.1:8088:8088"
+    env_file: .env
+    environment:
+      FINDASH_HOST: "0.0.0.0"
+      FINDASH_PORT: "8088"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8088/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

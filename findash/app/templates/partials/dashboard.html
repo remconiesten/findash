@@ -1,0 +1,315 @@
+{% if error %}
+<p class="banner error">{{ error }}</p>
+{% elif not kpis %}
+<p class="banner">{{ t.ui('empty.no_data') }}</p>
+{% else %}
+{% macro kpi_info(key) %}
+<button type="button" class="info" aria-label="{{ t.ui('info.' + key) }}">
+  <span aria-hidden="true">i</span>
+  <span class="info-tip" role="tooltip">{{ t.ui('info.' + key) }}</span>
+</button>
+{% endmacro %}
+
+{% if cycle_span %}
+<p class="cycle-span">{{ cycle_span }}</p>
+{% endif %}
+<section class="kpis primary">
+  <article>
+    {{ kpi_info('expenses') }}
+    <h2>
+      {% if focus_hoofd %}
+        {{ t.term('hoofd', focus_hoofd) }}{% if focus_sub %} · {{ t.term('sub', focus_sub) }}{% endif %}
+      {% else %}
+        {{ t.ui('kpi.expenses') }}
+      {% endif %}
+    </h2>
+    <p class="num coral">{{ kpis.expenses_net|eur(locale) }}</p>
+    <p class="kpi-sub">{{ t.ui('kpi.avg_month') }} {{ kpis.avg_month|eur_auto(locale) }}</p>
+    {% if kpis.refund > 0 %}
+    <a class="chip" href="#inspect-refunds">{{ t.ui('kpi.refunds') }} {{ kpis.refund|eur(locale) }}</a>
+    {% endif %}
+  </article>
+  <article>
+    {{ kpi_info('income') }}
+    <a href="#income" class="kpi-link">
+      <h2>{{ t.ui('kpi.income') }}</h2>
+      <p class="num teal">{{ kpis.income|eur(locale) }}</p>
+      <p class="kpi-sub">{{ t.ui('kpi.avg_month') }} {{ kpis.avg_income|eur_auto(locale) }}</p>
+    </a>
+  </article>
+  <article>
+    {{ kpi_info('delta') }}
+    <h2>{{ t.ui('kpi.delta') }}</h2>
+    <p class="num">{{ kpis.delta|eur(locale) }}</p>
+  </article>
+</section>
+
+<section class="kpis saving-kpis">
+  <article>
+    {{ kpi_info('saving_in') }}
+    <a href="#inspect-saving" class="kpi-link">
+      <h2>{{ t.ui('kpi.saving_in') }}</h2>
+      <p class="num teal">{{ kpis.saving_in|eur(locale) }}</p>
+    </a>
+  </article>
+  <article>
+    {{ kpi_info('saving_out') }}
+    <a href="#inspect-saving" class="kpi-link">
+      <h2>{{ t.ui('kpi.saving_out') }}</h2>
+      <p class="num coral">{{ kpis.saving_out|eur(locale) }}</p>
+    </a>
+  </article>
+  <article>
+    {{ kpi_info('saving_net') }}
+    <a href="#inspect-saving" class="kpi-link">
+      <h2>{{ t.ui('kpi.saving_net') }}</h2>
+      <p class="num">{{ kpis.saving|eur(locale) }}</p>
+    </a>
+  </article>
+</section>
+
+<section class="charts">
+  <figure id="chart-time">
+    <figcaption>{{ chart_title }}</figcaption>
+    <script type="application/json" id="chart-monthly-stack">{{ chart_monthly_stack | tojson }}</script>
+    <div class="chart-frame"><canvas id="c-monthly"></canvas></div>
+  </figure>
+  <figure>
+    <figcaption>{{ t.ui('chart.donut') }}</figcaption>
+    <script type="application/json" id="chart-donut">{{ chart_donut | tojson }}</script>
+    <div class="chart-frame"><canvas id="c-donut"></canvas></div>
+  </figure>
+  <figure class="chart-wide">
+    <figcaption>{{ t.ui('chart.in_vs_uit') }}</figcaption>
+    <script type="application/json" id="chart-in-vs-uit">{{ chart_in_vs_uit | tojson }}</script>
+    <div class="chart-frame"><canvas id="c-ivu"></canvas></div>
+  </figure>
+  {% if chart_saving %}
+  <figure class="chart-wide saving-mini">
+    <figcaption>{{ t.ui('chart.saving') }}</figcaption>
+    <script type="application/json" id="chart-saving">{{ chart_saving | tojson }}</script>
+    <div class="chart-frame saving-frame"><canvas id="c-saving"></canvas></div>
+  </figure>
+  {% endif %}
+</section>
+
+<section class="table-wrap">
+  {% if by_hoofd %}
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('table.hoofd') }}</th>
+        <th>{{ t.ui('table.amount') }}</th>
+        <th>{{ t.ui('table.expense') }}</th>
+        <th>{{ t.ui('table.refund') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in by_hoofd %}
+      <tr class="{{ 'active' if focus_hoofd==row.label else '' }}">
+        <td>
+          <button type="button" class="cat-btn" data-drill="hoofd" data-key="{{ row.label }}">{{ t.term('hoofd', row.label) }}</button>
+        </td>
+        <td>{{ row.netto|eur(locale) }}</td>
+        <td>{{ row.expense|eur(locale) }}</td>
+        <td>{% if row.refund > 0 %}{{ row.refund|eur(locale) }}{% else %}—{% endif %}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="spend"
+                  data-tx-hoofd="{{ row.label }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>{{ t.ui('table.empty') }}</p>
+  {% endif %}
+
+  {% if by_sub %}
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('table.sub') }}</th>
+        <th>{{ t.ui('table.amount') }}</th>
+        <th>{{ t.ui('table.expense') }}</th>
+        <th>{{ t.ui('table.refund') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in by_sub %}
+      <tr class="{{ 'active' if focus_sub==row.label else '' }}">
+        <td>
+          <button type="button" class="cat-btn" data-drill="sub" data-key="{{ row.label }}">{{ t.term('sub', row.label) }}</button>
+        </td>
+        <td>{{ row.netto|eur(locale) }}</td>
+        <td>{{ row.expense|eur(locale) }}</td>
+        <td>{% if row.refund > 0 %}{{ row.refund|eur(locale) }}{% else %}—{% endif %}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="spend"
+                  data-tx-hoofd="{{ focus_hoofd }}" data-tx-sub="{{ row.label }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+{% if by_income %}
+<section class="table-wrap income-wrap" id="income">
+  <h2>{{ t.ui('table.income') }}</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('table.sub') }}</th>
+        <th>{{ t.ui('table.amount') }}</th>
+        <th>{{ t.ui('inspect.col.count') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in by_income %}
+      <tr>
+        <td>{{ t.term('sub', row.label) }}</td>
+        <td>{{ row.som|eur(locale) }}</td>
+        <td>{{ row.n }}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="income"
+                  data-tx-sub="{{ row.label }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endif %}
+
+<details id="inspect-saving">
+  <summary>
+    {{ t.ui('inspect.saving') }}
+    {% if saving_accounts %}
+    <span class="summary-kicker">
+      {% for a in saving_accounts %}
+        {{ t.term('rekening', a.Rekening) }} {{ a.netto|eur_auto(locale) }}{% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </span>
+    {% endif %}
+  </summary>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('filter.year') }}</th>
+        <th>{{ t.ui('filter.month') }}</th>
+        <th>{{ t.ui('inspect.col.rekening') }}</th>
+        <th>{{ t.ui('kpi.saving_in') }}</th>
+        <th>{{ t.ui('kpi.saving_out') }}</th>
+        <th>{{ t.ui('kpi.saving_net') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in saving %}
+      <tr>
+        <td>{{ r.Jaar }}</td>
+        <td>{{ t.month(r.Maand) }}</td>
+        <td>{{ t.term('rekening', r.Rekening) }}</td>
+        <td>{{ r.storting|eur(locale) }}</td>
+        <td>{{ r.opname|eur(locale) }}</td>
+        <td>{{ r.netto|eur(locale) }}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="saving"
+                  data-year="{{ r.Jaar }}" data-month="{{ r.Maand }}"
+                  data-rekening="{{ r.Rekening }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
+<details id="inspect-internal">
+  <summary>
+    {{ t.ui('inspect.internal') }}
+    {% if intern_sum %}
+    <span class="summary-kicker">
+      {% for r in intern_sum %}
+        {% if r.van %}{{ t.term('rekening', r.van) }}{% else %}{{ t.ui('inspect.unknown') }}{% endif %}
+        →
+        {% if r.naar %}{{ t.term('rekening', r.naar) }}{% else %}{{ t.ui('inspect.unknown') }}{% endif %}
+        {{ r.som|eur_auto(locale) }}{% if not loop.last %} · {% endif %}
+      {% endfor %}
+    </span>
+    {% endif %}
+  </summary>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ t.ui('filter.year') }}</th>
+        <th>{{ t.ui('filter.month') }}</th>
+        <th>{{ t.ui('inspect.col.from') }}</th>
+        <th>{{ t.ui('inspect.col.to') }}</th>
+        <th>{{ t.ui('inspect.col.amount') }}</th>
+        <th>{{ t.ui('inspect.col.count') }}</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in intern %}
+      <tr>
+        <td>{{ r.Jaar }}</td>
+        <td>{{ t.month(r.Maand) }}</td>
+        <td>{% if r.van %}{{ t.term('rekening', r.van) }}{% else %}{{ t.ui('inspect.unknown') }}{% endif %}</td>
+        <td>{% if r.naar %}{{ t.term('rekening', r.naar) }}{% else %}{{ t.ui('inspect.unknown') }}{% endif %}</td>
+        <td>{{ r.som|eur(locale) }}</td>
+        <td>{{ r.n }}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="internal"
+                  data-year="{{ r.Jaar }}" data-month="{{ r.Maand }}"
+                  data-van="{{ r.van or '' }}" data-naar="{{ r.naar or '' }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
+<details id="inspect-refunds">
+  <summary>{{ t.ui('inspect.refunds') }}</summary>
+  <table>
+    <thead><tr>
+      <th>{{ t.ui('filter.year') }}</th><th>{{ t.ui('filter.month') }}</th>
+      <th>{{ t.ui('table.hoofd') }}</th><th>{{ t.ui('table.sub') }}</th>
+      <th>{{ t.ui('inspect.col.rekening') }}</th>
+      <th>{{ t.ui('inspect.col.amount') }}</th>
+      <th>{{ t.ui('inspect.col.count') }}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+      {% for r in refunds %}
+      <tr>
+        <td>{{ r.Jaar }}</td><td>{{ t.month(r.Maand) }}</td>
+        <td>{{ t.term('hoofd', r.Hoofdcategorie) }}</td>
+        <td>{{ t.term('sub', r.Subcategorie) }}</td>
+        <td>{{ t.term('rekening', r.Rekening) }}</td>
+        <td>{{ r.som|eur(locale) }}</td>
+        <td>{{ r.n }}</td>
+        <td>
+          <button type="button" class="linkish" data-tx data-kind="refund"
+                  data-year="{{ r.Jaar }}" data-month="{{ r.Maand }}"
+                  data-rekening="{{ r.Rekening }}"
+                  data-tx-hoofd="{{ r.Hoofdcategorie }}" data-tx-sub="{{ r.Subcategorie }}">{{ t.ui('tx.open') }}</button>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</details>
+
+<footer>
+  {{ t.ui('footer.queries') }}: {{ '%.0f'|format(query_ms) }} ms
+  {% if show_index_hint %}<p class="hint">{{ t.ui('footer.index_hint') }}</p>{% endif %}
+  {% if unclassified %}<p class="hint">unclassified: {{ unclassified }}</p>{% endif %}
+</footer>
+{% endif %}

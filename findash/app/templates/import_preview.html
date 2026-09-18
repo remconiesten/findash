@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block top_nav %}
+<a class="nav-studio" href="{{ base|default('') }}/import-studio">{{ t.ui('import.back_studio') }}</a>
+{% endblock %}
+{% block body %}
+<h1 class="import-title">{{ t.ui('import.preview_title') }}</h1>
+{% if error %}
+<p class="banner hint">{{ error }}</p>
+{% else %}
+<section class="kpis primary">
+  <article>
+    <h2>{{ t.ui('import.new') }}</h2>
+    <p class="num teal">{{ preview.n_new }}</p>
+    <p class="kpi-sub">{{ preview.n_doubt }} {{ t.ui('import.tone_doubt') }} · {{ preview.n_sure }} {{ t.ui('import.tone_sure') }}</p>
+  </article>
+  <article><h2>{{ t.ui('import.dupe') }}</h2><p class="num">{{ preview.n_dupe }}</p></article>
+  <article><h2>{{ t.ui('import.err') }}</h2><p class="num coral">{{ preview.n_err }}</p></article>
+</section>
+<p class="hint-quiet">{{ t.ui('import.kind.' + preview.kind) }} · {{ t.ui('import.hash_note') }} · {{ t.ui('import.tone_help') }}</p>
+<form method="post" action="{{ base|default('') }}/import-studio/commit" class="import-commit">
+  <input type="hidden" name="token" value="{{ token }}">
+<table class="studio-table">
+  <thead>
+    <tr>
+      <th>{{ t.ui('import.status') }}</th>
+      <th>{{ t.ui('inspect.col.date') }}</th>
+      <th>{{ t.ui('filter.rekening') }}</th>
+      <th>{{ t.ui('inspect.col.af_bij') }}</th>
+      <th>{{ t.ui('inspect.col.amount') }}</th>
+      <th>{{ t.ui('inspect.col.desc') }}</th>
+      <th>{{ t.ui('import.txid') }}</th>
+      <th>{{ t.ui('import.certainty') }}</th>
+      <th>{{ t.ui('studio.suggest') }}</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in preview.rows %}
+    <tr class="{% if row.status=='nieuw' and row.tone=='sure' %}studio-hot{% elif row.status=='nieuw' %}studio-warn{% endif %}">
+      <td>{{ t.ui('import.status.' + row.status) }}</td>
+      <td>{{ row.datum }}</td>
+      <td>{{ t.term('rekening', row.rekening) if row.rekening else '' }}</td>
+      <td>{{ t.term('af_bij', row.richting) if row.richting else '' }}</td>
+      <td>{{ row.bedrag }}</td>
+      <td>{{ row.omschrijving }}</td>
+      <td class="muted txid">{{ row.txid }}</td>
+      <td>
+        {% if row.source == 'regel' %}
+          {{ t.ui('import.cc_settlement') }}
+        {% elif row.mem_share is not none %}
+          {{ t.ui('studio.source.text') }} {{ row.mem_n }}× · {{ '%.0f'|format(row.mem_share * 100) }}%
+        {% elif row.status=='nieuw' %}
+          <span class="muted">{{ t.ui('import.no_memory') }}</span>
+        {% endif %}
+      </td>
+      <td>
+        {% if row.status=='nieuw' %}
+        <div class="studio-form">
+          <select name="hoofd-{{ row.txid }}"
+                  hx-get="{{ base|default('') }}/import-studio/subs"
+                  hx-target="#sub-imp-{{ row.txid }}"
+                  hx-vals="js:{hoofd: event.target.value}">
+            {% for h in hoofden %}
+            <option value="{{ h }}" {{ 'selected' if row.hoofd==h else '' }}>{{ t.term('hoofd', h) }}</option>
+            {% endfor %}
+          </select>
+          <select name="sub-{{ row.txid }}" id="sub-imp-{{ row.txid }}">
+            {% for s in subs_by_hoofd.get(row.hoofd, []) %}
+            <option value="{{ s }}" {{ 'selected' if row.sub==s else '' }}>{{ t.term('sub', s) }}</option>
+            {% endfor %}
+          </select>
+          <input type="text" name="entiteit-{{ row.txid }}" class="studio-free"
+                 value="{{ row.entiteit or '' }}" placeholder="{{ t.ui('studio.entiteit') }}" maxlength="191">
+        </div>
+        {% if row.neighbors %}
+        <details class="import-neighbors">
+          <summary>{{ t.ui('studio.neighbors') }}</summary>
+          <ul class="studio-neighbors">
+            {% if row.neighbors_mixed %}<li class="hint">{{ t.ui('studio.split') }}</li>{% endif %}
+            {% for n in row.neighbors %}
+            <li>
+              {{ t.term('hoofd', n.hoofd) }} / {{ t.term('sub', n.sub) }}
+              {% if n.entiteit %} · {{ n.entiteit }}{% endif %}
+              <span class="muted">{{ '%.3f'|format(n.score) }}</span>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+        {% elif row.hoofd %}
+          {{ t.term('hoofd', row.hoofd) }} / {{ t.term('sub', row.sub) }}
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+{% if preview.n_new %}
+  <p class="studio-bulk">
+    <button type="submit" class="tx-close">{{ t.ui('import.commit') }} ({{ preview.n_new }})</button>
+    <a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.cancel') }}</a>
+  </p>
+{% else %}
+<p class="banner">{{ t.ui('import.nothing_new') }}</p>
+<a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.back_studio') }}</a>
+{% endif %}
+</form>
+{% endif %}
+{% endblock %}

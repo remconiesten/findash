@@ -1,0 +1,47 @@
+name: FinDash
+version: "0.2.0"
+slug: findash
+description: Household finance dashboard. Uses the MariaDB and Qdrant add-ons on this host.
+url: https://github.com/YOU/findash
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+ingress: true
+ingress_port: 8088
+panel_icon: mdi:chart-bar
+panel_title: FinDash
+map:
+  - share:rw
+ports:
+  8088/tcp: null
+ports_description:
+  8088/tcp: Optional LAN port without Home Assistant ingress
+options:
+  mariadb_host: core-mariadb
+  mariadb_port: 3306
+  mariadb_user: findash
+  mariadb_password: ""
+  mariadb_database: findash
+  findash_database: findash
+  qdrant_url: http://qdrant:6333
+  qdrant_api_key: ""
+  qdrant_collection: findash_tx
+  default_locale: nl
+  cc_rekening: Rekening A
+  own_rekeningen: Rekening A,Rekening B
+schema:
+  mariadb_host: str
+  mariadb_port: port
+  mariadb_user: str
+  mariadb_password: password
+  mariadb_database: str
+  findash_database: list(findash|n8n)
+  qdrant_url: str
+  qdrant_api_key: password
+  qdrant_collection: str
+  default_locale: list(nl|en|ru)
+  cc_rekening: str
+  own_rekeningen: str

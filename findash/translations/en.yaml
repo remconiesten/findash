@@ -1,0 +1,37 @@
+configuration:
+  mariadb_host:
+    name: MariaDB host
+    description: Docker hostname of the MariaDB add-on (often core-mariadb). Supervisor → the MariaDB add-on → Info.
+  mariadb_port:
+    name: MariaDB port
+    description: Usually 3306.
+  mariadb_user:
+    name: MariaDB user
+    description: Existing findash login. Not a new account.
+  mariadb_password:
+    name: MariaDB password
+    description: Same password as in the laptop .env. Stored by Supervisor, not in git.
+  mariadb_database:
+    name: Transaction schema
+    description: findash (copy of FinBot tables). Leave as findash.
+  findash_database:
+    name: Translation schema
+    description: findash.ui_string / term. Leave as findash.
+  qdrant_url:
+    name: Qdrant URL
+    description: http://<qdrant-hostname>:6333. Hostname from Supervisor → Qdrant add-on → Info.
+  qdrant_api_key:
+    name: Qdrant API key
+    description: Key from the Qdrant add-on config. Stored by Supervisor, not in git.
+  qdrant_collection:
+    name: Qdrant collection
+    description: findash_tx only. Do not point at FinBot collections.
+  default_locale:
+    name: Default language
+    description: nl, en, or ru. Users can still switch in the dashboard.
+  cc_rekening:
+    name: Card account label
+    description: Exact Rekening … string as stored in MariaDB for the card holder. Not a person’s name in git; match the database.
+  own_rekeningen:
+    name: Own account labels
+    description: Comma-separated Rekening … labels that appear in the account filter. Must match MariaDB.

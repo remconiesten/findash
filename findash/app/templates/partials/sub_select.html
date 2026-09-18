@@ -1,0 +1,7 @@
+<span class="field-label">{{ t.ui('filter.sub') }}</span>
+<select name="sub" id="sub">
+  <option value="all">{{ t.ui('filter.all') }}</option>
+  {% for item in vocab.sub %}
+  <option value="{{ item }}" {{ 'selected' if sub==item else '' }}>{{ t.term('sub', item) }}</option>
+  {% endfor %}
+</select>

@@ -1,0 +1,83 @@
+{% if queue == 'zoek' and not q %}
+<p class="banner">{{ t.ui('studio.zoek_hint') }}</p>
+{% elif not rows %}
+<p class="banner">{{ t.ui('studio.empty') }}</p>
+{% else %}
+<form id="bulk-form" method="post" action="{{ base|default('') }}/import-studio/bulk" class="studio-bulk-form">
+  <div class="studio-bulk">
+    <input type="hidden" name="drempel" value="{{ drempel }}">
+    <input type="hidden" name="queue" value="{{ queue }}">
+    <input type="hidden" name="from_year" value="{{ from_year }}">
+    <input type="hidden" name="from_month" value="{{ from_month }}">
+    <input type="hidden" name="to_year" value="{{ to_year }}">
+    <input type="hidden" name="to_month" value="{{ to_month }}">
+    <input type="hidden" name="rekening" value="{{ rekening }}">
+    <input type="hidden" name="q" value="{{ q|default('') }}">
+    <label class="muted"><input type="checkbox" id="sel-all"> {{ t.ui('studio.sel_all') }}</label>
+    <button type="submit" class="tx-close">{{ t.ui('studio.bulk') }}</button>
+    <span class="muted">{{ t.ui('studio.bulk_help') }}</span>
+  </div>
+</form>
+<table class="studio-table">
+  <thead>
+    <tr>
+      <th></th>
+      <th>{{ t.ui('inspect.col.date') }}</th>
+      <th>{{ t.ui('inspect.col.rekening') }}</th>
+      <th>{{ t.ui('inspect.col.af_bij') }}</th>
+      <th>{{ t.ui('inspect.col.amount') }}</th>
+      <th>{{ t.ui('inspect.col.desc') }}</th>
+      <th>{{ t.ui('studio.current') }}</th>
+      <th>{{ t.ui('studio.suggest') }}</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for row in rows %}
+      {% include "partials/studio_row.html" %}
+    {% endfor %}
+  </tbody>
+</table>
+<p class="studio-pager">
+  <span>{{ total }} {{ t.ui('studio.rows') }} · {{ t.ui('studio.page') }} {{ page }} {{ t.ui('studio.page_of') }} {{ pages }}</span>
+  {% if page > 1 %}
+  <a href="{{ base|default('') }}/import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page - 1 }}">←</a>
+  {% endif %}
+  {% if has_next %}
+  <a href="{{ base|default('') }}/import-studio?queue={{ queue }}&from_year={{ from_year }}&from_month={{ from_month }}&to_year={{ to_year }}&to_month={{ to_month }}&rekening={{ rekening }}&drempel={{ drempel }}&q={{ q|default('')|urlencode }}&page={{ page + 1 }}">→</a>
+  {% endif %}
+</p>
+<script>
+(function(){
+  var all = document.getElementById('sel-all');
+  if (all) {
+    all.addEventListener('change', function(){
+      document.querySelectorAll('.sel-row').forEach(function(c){ c.checked = all.checked; });
+    });
+  }
+  var bulk = document.getElementById('bulk-form');
+  if (!bulk) return;
+  bulk.addEventListener('submit', function(){
+    bulk.querySelectorAll('[data-bulk-extra]').forEach(function(n){ n.remove(); });
+    document.querySelectorAll('.sel-row:checked').forEach(function(c){
+      var tr = c.closest('tr');
+      var rowForm = tr && tr.querySelector('form.studio-correct');
+      var add = function(name, value){
+        var h = document.createElement('input');
+        h.type = 'hidden';
+        h.name = name;
+        h.value = value;
+        h.setAttribute('data-bulk-extra', '1');
+        bulk.appendChild(h);
+      };
+      add('sel', c.value);
+      if (!rowForm) return;
+      ['hoofd', 'sub', 'sub_new', 'entiteit'].forEach(function(name){
+        var el = rowForm.querySelector('[name="' + name + '"]');
+        if (el) add(name + '-' + c.value, el.value);
+      });
+    });
+  });
+})();
+</script>
+{% endif %}

@@ -1,0 +1,5 @@
+# Optional. Install before scripts/test_qdrant.py and ingest_qdrant.py.
+# Keep out of requirements.txt so pytest/classify stay light.
+qdrant-client==1.15.1
+fastembed==0.6.1
+onnxruntime==1.19.2

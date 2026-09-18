@@ -1,0 +1,23 @@
+{% if error %}
+<p class="hint">{{ error }}</p>
+{% elif not neighbors %}
+<p class="muted">—</p>
+{% else %}
+{% if mixed %}
+<p class="hint">{{ t.ui('studio.split') }}</p>
+<div class="studio-split">
+  {% for p in split or [] %}
+  <span>{{ t.term('hoofd', p.hoofd) }} / {{ t.term('sub', p.sub) }} ×{{ p.n }}</span>
+  {% endfor %}
+</div>
+{% endif %}
+<ul class="studio-neighbors">
+  {% for n in neighbors %}
+  <li>
+    {{ t.term('hoofd', n.hoofd) }} / {{ t.term('sub', n.sub) }}
+    {% if n.entiteit %} · {{ n.entiteit }}{% endif %}
+    <span class="muted">{{ '%.3f'|format(n.score) }}</span>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}

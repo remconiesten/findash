@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Create findash.ui_string / term and seed NL+EN+RU. Uses .env MARIADB_*."""
+"""Create findash.ui_string / term and seed NL+EN+RU. Uses .env MARIADB_*.
+
+After the numbered migrations, applies gitignored docs/sql/seed-*.local.sql
+(household rekening names). Never glob create-*.local.sql — those have passwords.
+"""
 
 from __future__ import annotations
 
@@ -70,6 +74,14 @@ def main() -> int:
                     cur.execute(stmt)
                     n += 1
                 print(f"{name}: {n} statements")
+            local_dir = ROOT / "docs" / "sql"
+            for path in sorted(local_dir.glob("seed-*.local.sql")):
+                sql = path.read_text(encoding="utf-8")
+                n = 0
+                for stmt in _statements(sql):
+                    cur.execute(stmt)
+                    n += 1
+                print(f"{path.name}: {n} statements")
             cur.execute(f"SELECT COUNT(*) FROM `{schema}`.`ui_string`")
             ui = cur.fetchone()[0]
             cur.execute(f"SELECT COUNT(*) FROM `{schema}`.`term`")

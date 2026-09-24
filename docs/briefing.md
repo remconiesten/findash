@@ -1,6 +1,6 @@
 # findash — briefing (handoff)
 
-Laatste bijwerking: 2026-09-18. Dashboard **v0.2.9** (app-code: `489dec3`). Briefing-park staat 1 commit voor origin tot `git push origin main`. Lokaal: `127.0.0.1:8088`. Schema `findash` geseed. Handoff: deze briefing + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md) + [`docs/addon.md`](addon.md). Nieuwe sessie starten; deze chat niet hervatten.
+Laatste bijwerking: 2026-09-24. Dashboard **v0.2.9** (app-code: `489dec3`). Branch `main` lokaal voor origin (park-commits, geen push gevraagd). Lokaal: `127.0.0.1:8088`. Schema `findash` geseed. Handoff: deze briefing + gitignored [`docs/briefing.local.md`](briefing.local.md) + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md) + [`docs/addon.md`](addon.md). Nieuwe sessie starten; deze chat niet hervatten.
 
 ## Opdracht
 
@@ -34,9 +34,11 @@ Ook:
 2. MariaDB-add-on GUI: `findash` heeft `SELECT` op `n8n` (staat). Op `findash`.* heeft dezelfde user nu ALL (gebruikt om 001–003 te seeden). Optioneel later terugzetten naar SELECT, zodat de GUI-rechten een herstart overleven.
 3. Schema `findash` bestaat; `scripts/apply_findash_schema.py` heeft 001–003 gedraaid (`/health` → `findash_schema: ok`).
 
-## App-stand (2026-09-18)
+## App-stand (2026-09-24)
 
-Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on v0.2.9, zie [`docs/addon.md`](addon.md). App-code 0.2.9 stond al op origin; deze briefing-commit nog pushen.
+Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on v0.2.9, zie [`docs/addon.md`](addon.md). App-code 0.2.9 staat op origin; briefing + local-seed-pad nog niet gepusht.
+
+2026-09-24: `scripts/apply_findash_schema.py` draait na de genummerde migraties (001–006) ook gitignored `docs/sql/seed-*.local.sql` (huishoud-rekening EN/RU). Nooit `*.local.sql` of `create-*.local.sql` globben — die laatste hebben wachtwoorden. Test: `test_apply_schema_globs_only_seed_local_sql`. Seed is lokaal toegepast (`findash.term`); geen app-herstart nodig (termen per request). Filter-**waarden** blijven NL; labels via `t.term('rekening', …)`. Gekozen schrijfwijzen: [`docs/briefing.local.md`](briefing.local.md), niet in git. Niet in `003_seed_en_ru.sql` of `findash/app/i18n.py`.
 
 Gebouwd sinds ontwerp-goedkeuring (niet uitputtend): chrome-header + Nunito; periodechips; zoom-HUD (`position: fixed`, kolom 68rem) in categoriekleur; sparen als lijn + opname/netto-KPI; interne stromen van→naar onderin; inkomstentabel; transacties uitklappen onder de rij + Sluiten; info-i op zes KPI’s; favicon = koraalrood logo. CC-aflossing blijft uit de UI (wel geclassificeerd). In vs uit: eigen rekeningen, CC-label eerst. Subkleuren: FinDash-palet min ouder-hex, canon = `vocab.sub` (niet “grootste sub = ouder”). Sub zonder hoofd: unieke ouder afleiden, anders blijven donut/stack/tabel op hoofd-grain.
 
@@ -55,10 +57,11 @@ Eerst in Chrome (hard refresh `127.0.0.1:8088`) een periodechip **en** een categ
 
 ## Volgende sessie (volgorde)
 
-1. Deze briefing + `AGENTS.md` + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md).
-2. Niet buiten deze git-root.
+1. Deze briefing + `AGENTS.md` + gitignored [`docs/briefing.local.md`](briefing.local.md) + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md).
+2. Niet buiten deze git-root. Geen namen/IBAN’s in git of chat.
 3. Open Chrome-grafiekbug hierboven — eerst verifiëren, daarna pas code.
-4. Hygiene of Qdrant: eerst ontwerp als het writes of nieuwe productvlakken zijn.
+4. Huishoud-rekening EN/RU: al in MariaDB via local seed. Alleen opnieuw `apply_findash_schema.py` na schema-reset. Geen extra persoonsnamen vertalen tenzij gevraagd.
+5. Hygiene of Qdrant: eerst ontwerp als het writes of nieuwe productvlakken zijn.
 
 De SQL-bestanden in `docs/sql/` blijven als referentie. De add-on overschrijft tabel-GRANTs bij start met `GRANT … ON n8n.*`.
 
@@ -152,7 +155,7 @@ Dashboard-UI in **Nederlands (standaard)**, **Engels** en **Russisch**.
 
 Brontermen (NL, live): 12+1 hoofden (plus CC `Aflossing`), ~75+ subs, `Af`/`Bij`, 10 mutatiesoorten, 3 CC-types, rekeninglabels. `Entiteit` te groot/rommelig voor een complete vertaallijst.
 
-Vertaallijst **in MariaDB**, eigen tabel(len) van findash (niet in de FinBot-tabellen schrijven). Het dashboard **leest** vertalingen (`SELECT`). Nieuwe of gewijzigde vertalingen komen mee met een **app-update** (migratie/seed), bijvoorbeeld als FinBot een nieuwe categorie toevoegt. Geen vertaal-UI in het dashboard.
+Vertaallijst **in MariaDB**, eigen tabel(len) van findash (niet in de FinBot-tabellen schrijven). Het dashboard **leest** vertalingen (`SELECT`). Nieuwe of gewijzigde vertalingen komen mee met een **app-update** (migratie/seed), bijvoorbeeld als FinBot een nieuwe categorie toevoegt. Geen vertaal-UI in het dashboard. Huishoud-rekeningnamen (EN/RU) staan in gitignored `docs/sql/seed-*.local.sql` en gaan mee met `scripts/apply_findash_schema.py`; niet in `003_seed_en_ru.sql`.
 
 Ontbrekende vertaling: de bronterm tonen (Nederlands) tot de volgende update de EN/RU-rij toevoegt.
 
@@ -160,7 +163,7 @@ Gevolg voor rechten: `findash` blijft read-only; GRANT later ook `SELECT` op de 
 
 ## Volgende sessie
 
-Zie **Open: Chrome grafieken** hierboven, daarna App-stand en [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md). Nieuwe chat; briefing eerst lezen. Weekend-park 2026-09-18.
+Zie **Open: Chrome grafieken** hierboven, daarna App-stand en [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md). Nieuwe chat; briefing eerst lezen. Park 2026-09-24 (rekening-i18n local seed + briefing).
 
 ## Bewust niet in deze repo
 

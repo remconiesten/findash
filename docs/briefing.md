@@ -1,6 +1,6 @@
 # findash — briefing (handoff)
 
-Laatste bijwerking: 2026-09-24. Dashboard **v0.2.9** (app-code: `489dec3`). Branch `main` lokaal voor origin (park-commits, geen push gevraagd). Lokaal: `127.0.0.1:8088`. Schema `findash` geseed. Handoff: deze briefing + gitignored [`docs/briefing.local.md`](briefing.local.md) + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md) + [`docs/addon.md`](addon.md). Nieuwe sessie starten; deze chat niet hervatten.
+Laatste bijwerking: 2026-10-08. Dashboard **v0.2.10**. Lokaal: `127.0.0.1:8088`. Schema `findash` geseed. Handoff: deze briefing + gitignored [`docs/briefing.local.md`](briefing.local.md) + [`docs/hygiene-bevindingen.md`](hygiene-bevindingen.md) + [`docs/addon.md`](addon.md). Nieuwe sessie starten; deze chat niet hervatten.
 
 ## Opdracht
 
@@ -36,7 +36,7 @@ Ook:
 
 ## App-stand (2026-09-24)
 
-Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on v0.2.9, zie [`docs/addon.md`](addon.md). App-code 0.2.9 staat op origin; briefing + local-seed-pad nog niet gepusht.
+Draaien: `PYTHONPATH=findash .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8088` (geen `--reload`; na codewijziging kill+start). Tests: `PYTHONPATH=findash .venv/bin/pytest -q`. Productie: HA-add-on v0.2.10, zie [`docs/addon.md`](addon.md). Supervisor vergelijkt alleen `version` in `findash/config.yaml`; dezelfde string geeft geen Update, ook al is de git-inhoud nieuwer.
 
 2026-09-24: `scripts/apply_findash_schema.py` draait na de genummerde migraties (001–006) ook gitignored `docs/sql/seed-*.local.sql` (huishoud-rekening EN/RU). Nooit `*.local.sql` of `create-*.local.sql` globben — die laatste hebben wachtwoorden. Test: `test_apply_schema_globs_only_seed_local_sql`. Seed is lokaal toegepast (`findash.term`); geen app-herstart nodig (termen per request). Filter-**waarden** blijven NL; labels via `t.term('rekening', …)`. Gekozen schrijfwijzen: [`docs/briefing.local.md`](briefing.local.md), niet in git. Niet in `003_seed_en_ru.sql` of `findash/app/i18n.py`.
 

@@ -2,7 +2,14 @@ import hashlib
 from decimal import Decimal
 
 from app.amounts import cc_mutatie_hash_token, js_number_to_string, parse_nl_amount
-from app.cc_parse import bank_ymd, cc_ymd, extract_cc_lines, parse_cc_lines
+from app.cc_parse import (
+    bank_ymd,
+    cc_richting,
+    cc_ymd,
+    extract_cc_lines,
+    parse_cc_lines,
+    split_cc_lines,
+)
 from app.txid import bank_txid, cc_txid
 
 
@@ -66,3 +73,41 @@ def test_extract_and_parse_cc_pdf_lines():
     # n8n stripped only Incasso|Betaling; Kosten remains in Omschrijving (hash-stable).
     assert rows[2]["Type"] == "Kosten"
     assert "Kosten" in str(rows[2]["Omschrijving"])
+
+
+def test_cc_credit_is_bij_and_does_not_share_txid_with_the_charge():
+    pdf = "\n".join(
+        [
+            "01-06-2025 SHOP AMSTERDAM Betaling - 12,50",
+            "02-06-2025 SHOP AMSTERDAM Credit + 12,50",
+            "04-06-2025 SHOP AMSTERDAM Betaling + 12,50",
+            "03-06-2025 SHOP AMSTERDAM",
+            "Credit + 9,00",
+            "09-06-2025 DIT IS GEEN TRANSACTIE",
+        ]
+    )
+    matched, unmatched = split_cc_lines(pdf)
+    assert unmatched == ["09-06-2025 DIT IS GEEN TRANSACTIE"]
+    rows = parse_cc_lines("\n".join(matched))
+    assert [row["Type"] for row in rows] == ["Betaling", "Credit", "Betaling", "Credit"]
+    assert rows[1]["Omschrijving"] == "SHOP AMSTERDAM"
+    assert rows[1]["Mutatie"] == Decimal("12.50")
+    assert cc_richting("Credit", rows[1]["Mutatie"]) == "Bij"
+    assert cc_richting("Betaling", rows[0]["Mutatie"]) == "Af"
+    assert cc_richting("Betaling", rows[2]["Mutatie"]) == "Bij"
+    assert cc_richting("Incasso", Decimal("-1.00")) == "Bij"
+    charge = cc_txid(
+        rows[0]["Datum"], rows[0]["Omschrijving"], rows[0]["Type"], rows[0]["mutatie_hash_token"]
+    )
+    refund = cc_txid(
+        rows[1]["Datum"], rows[1]["Omschrijving"], rows[1]["Type"], rows[1]["mutatie_hash_token"]
+    )
+    same_word = cc_txid(
+        rows[2]["Datum"], rows[2]["Omschrijving"], rows[2]["Type"], rows[2]["mutatie_hash_token"]
+    )
+    assert charge != refund
+    assert charge != same_word
+    assert rows[3]["Mutatie"] == Decimal("9.00")
+    assert "Kosten" in str(parse_cc_lines(extract_cc_lines(
+        "15-01-2025 JAARLIJKSE Kosten - 1,50"
+    ))[0]["Omschrijving"])

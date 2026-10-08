@@ -99,6 +99,10 @@
     <button type="submit" class="tx-close">{{ t.ui('import.commit') }} ({{ preview.n_new }})</button>
     <a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.cancel') }}</a>
   </p>
+  <p class="import-wait" hidden role="status" aria-live="polite">
+    <progress aria-hidden="true"></progress>
+    <span>{{ t.ui('import.wait_commit') }}</span>
+  </p>
 {% else %}
 <p class="banner">{{ t.ui('import.nothing_new') }}</p>
 <a class="linkish" href="{{ base|default('') }}/import-studio">{{ t.ui('import.back_studio') }}</a>

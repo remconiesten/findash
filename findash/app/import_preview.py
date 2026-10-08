@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import uuid
 from decimal import Decimal
@@ -13,11 +14,14 @@ from app.anonymize import AnonymizeRules, anonymize_text, is_rekening_label
 from app.bank_csv import CsvFormatError, parse_bank_csv
 from app.cc_parse import (
     cc_account_label,
-    extract_cc_lines,
+    cc_richting,
+    cc_ymd,
     parse_cc_lines,
     pdf_bytes_to_text,
-    unmatched_cc_date_lines,
+    split_cc_lines,
 )
+from app.embed import normalize
+from app.hybrid import memory_for_text
 from pymysql.err import IntegrityError
 
 from app.db import TimedCursor, tx_ident
@@ -88,6 +92,8 @@ def _date_key(row: dict[str, Any]) -> int:
 
 
 def _band(row: dict[str, Any]) -> int:
+    if row.get("status") == "fout":
+        return -1
     if row.get("status") == "nieuw" and row.get("tone") == "doubt":
         return 0
     if row.get("status") == "nieuw" and row.get("tone") == "sure":
@@ -234,33 +240,139 @@ def preview_bank(
     return _pack("bank", headers, rows_out)
 
 
-def preview_cc(
-    raw: bytes,
+def _item_ymd(item: dict[str, Any]) -> int:
+    return int(item["Jaar"]) * 10000 + int(item["Maand"]) * 100 + int(item["Dag"])
+
+
+def _copy_debit_category(
+    index: int,
+    parsed: list[dict[str, Any]],
+    namen: list[str],
+    richtingen: list[str],
+    choices: list[tuple[str, str, dict[str, Any]] | None],
+) -> tuple[str, str, dict[str, Any]] | None:
+    """Zelfde omschrijving in dit bestand: gelijk bedrag, anders dichtste datum."""
+    key = normalize(namen[index])
+    if not key:
+        return None
+    best_j: int | None = None
+    best_rank: tuple[int, int] | None = None
+    credit_abs = abs(parsed[index]["Mutatie"])
+    credit_date = _item_ymd(parsed[index])
+    for j, other in enumerate(parsed):
+        if richtingen[j] != "Af" or normalize(namen[j]) != key:
+            continue
+        same = abs(other["Mutatie"]) == credit_abs
+        rank = (0 if same else 1, abs(_item_ymd(other) - credit_date))
+        if best_rank is None or rank < best_rank:
+            best_rank = rank
+            best_j = j
+    if best_j is None or choices[best_j] is None:
+        return None
+    hoofd, sub, cert = choices[best_j]
+    cert = dict(cert)
+    labels = []
+    for j, other in enumerate(parsed):
+        if richtingen[j] != "Af" or normalize(namen[j]) != key:
+            continue
+        if abs(other["Mutatie"]) != credit_abs or choices[j] is None:
+            continue
+        labels.append((choices[j][0], choices[j][1]))
+    if len(set(labels)) > 1:
+        cert["tone"] = "doubt"
+    return hoofd, sub, cert
+
+
+def _cc_categories(
+    parsed: list[dict[str, Any]],
+    namen: list[str],
+    memory_rows: list[dict[str, Any]],
+) -> list[tuple[str, str, dict[str, Any]]]:
+    """Incasso blijft aflossing. Een credit volgt de afschrijving, niet Inkomsten."""
+    richtingen = [
+        cc_richting(str(item["Type"]), item["Mutatie"])
+        if isinstance(item["Mutatie"], Decimal)
+        else "Af"
+        for item in parsed
+    ]
+    choices: list[tuple[str, str, dict[str, Any]] | None] = []
+    for item, naam, richting in zip(parsed, namen, richtingen):
+        typ = str(item["Type"])
+        if richting == "Bij" and typ != "Incasso":
+            choices.append(None)
+            continue
+        choices.append(choose_cats(richting, naam, memory_rows, typ))
+    for i, naam in enumerate(namen):
+        if choices[i] is not None:
+            continue
+        paired = _copy_debit_category(i, parsed, namen, richtingen, choices)
+        if paired is not None:
+            choices[i] = paired
+            continue
+        mem = memory_for_text(memory_rows, naam, "Af")
+        if mem:
+            cert = certainty(mem)
+            cert["source"] = "text"
+            choices[i] = (str(mem["hoofd"]), str(mem["sub"]), cert)
+            continue
+        cert = certainty(None)
+        cert["source"] = "fallback"
+        choices[i] = ("Overige uitgaven", "overig", cert)
+    out: list[tuple[str, str, dict[str, Any]]] = []
+    for choice in choices:
+        if choice is None:
+            raise RuntimeError("cc category missing")
+        out.append(choice)
+    return out
+
+
+_LONG_DIGITS = re.compile(r"\d{12,}")
+
+
+def _fout_cc_line(line: str) -> dict[str, Any]:
+    shown = redact_text(_LONG_DIGITS.sub("…", line))
+    datum = ""
+    head = line[:10]
+    if len(head) == 10 and head[2] == "-" and head[5] == "-":
+        try:
+            jaar, maand, dag = cc_ymd(head)
+            datum = f"{jaar:04d}-{maand:02d}-{dag:02d}"
+        except ValueError:
+            datum = ""
+    return _display(
+        shown, "", "fout", error="unmatched", richting="", bedrag="", datum=datum
+    )
+
+
+def preview_cc_text(
+    text: str,
     rules: AnonymizeRules,
     existing: set[str],
     memory_rows: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    text = pdf_bytes_to_text(raw)
-    n_unmatched = unmatched_cc_date_lines(text)
-    lines = extract_cc_lines(text)
-    parsed = parse_cc_lines(lines) if lines else []
+    matched, unmatched = split_cc_lines(text)
+    parsed: list[dict[str, Any]] = []
+    bad: list[str] = []
+    for line in matched:
+        try:
+            parsed.extend(parse_cc_lines(line))
+        except ValueError:
+            bad.append(line)
+    unmatched = unmatched + bad
+    namen = [anonymize_text(str(item["Omschrijving"]), rules) for item in parsed]
+    cats = _cc_categories(parsed, namen, memory_rows) if parsed else []
     rows_out: list[dict[str, Any]] = []
-    n_new = n_dupe = 0
-    n_err = n_unmatched
-    for item in parsed:
+    for item, naam, (hoofd, sub, cert) in zip(parsed, namen, cats):
         token = str(item["mutatie_hash_token"])
         txid = cc_txid(item["Datum"], item["Omschrijving"], item["Type"], token)
         typ = str(item["Type"])
         mutatie = item["Mutatie"]
-        richting = "Bij" if typ == "Incasso" else "Af"
-        naam = anonymize_text(str(item["Omschrijving"]), rules)
-        hoofd, sub, cert = choose_cats(richting, naam, memory_rows, typ)
+        richting = (
+            cc_richting(typ, mutatie) if isinstance(mutatie, Decimal) else "Af"
+        )
         status = "dubbel" if txid in existing else "nieuw"
         if status == "dubbel":
-            n_dupe += 1
             cert["tone"] = ""
-        else:
-            n_new += 1
         jaar, maand, dag = int(item["Jaar"]), int(item["Maand"]), int(item["Dag"])
         datum = f"{jaar:04d}-{maand:02d}-{dag:02d}"
         bedrag = abs(mutatie) if isinstance(mutatie, Decimal) else mutatie
@@ -300,7 +412,18 @@ def preview_cc(
                 else None,
             )
         )
+    for line in unmatched:
+        rows_out.append(_fout_cc_line(line))
     return _pack("cc", [], rows_out)
+
+
+def preview_cc(
+    raw: bytes,
+    rules: AnonymizeRules,
+    existing: set[str],
+    memory_rows: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return preview_cc_text(pdf_bytes_to_text(raw), rules, existing, memory_rows)
 
 
 def save_stage(payload: dict[str, Any]) -> str:

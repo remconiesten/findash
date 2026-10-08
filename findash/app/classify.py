@@ -32,6 +32,8 @@ CASE
   WHEN `Af Bij` = 'Bij' AND `Type` = 'Incasso' THEN 'cc_settlement'
   WHEN `Af Bij` = 'Af' AND `Type` IN ('Betaling', 'Kosten') THEN 'expense'
   WHEN Hoofdcategorie = 'Interne overboeking' THEN 'internal'
+  WHEN `Af Bij` = 'Bij' THEN 'refund'
+  WHEN `Af Bij` = 'Af' THEN 'expense'
   ELSE 'unclassified'
 END
 """

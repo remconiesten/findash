@@ -1,10 +1,13 @@
 from app.hybrid import memory_for_text
+from pathlib import Path
+
 from app.import_preview import (
     apply_overrides,
     certainty,
     choose_cats,
     default_pair,
     preview_bank,
+    preview_cc_text,
     sort_preview_rows,
 )
 from app.anonymize import AnonymizeRules
@@ -129,6 +132,86 @@ def test_incasso_ignores_memory_and_is_sure():
     assert (hoofd, sub) == ("Aflossing", "creditcard")
     assert cert["tone"] == "sure"
     assert cert["source"] == "regel"
+
+
+def _cc_sample() -> str:
+    return "\n".join(
+        [
+            "01-06-2025 SHOP AMSTERDAM Betaling - 12,50",
+            "02-06-2025 SHOP AMSTERDAM Credit + 12,50",
+            "03-06-2025 MAANDINCASSO Incasso + 40,00",
+            "09-06-2025 DIT IS GEEN TRANSACTIE",
+        ]
+    )
+
+
+def test_preview_cc_refund_follows_charge_and_unmatched_is_visible():
+    preview = preview_cc_text(_cc_sample(), _rules(), set(), [])
+    refunds = [r for r in preview["rows"] if r.get("typ") == "Credit"]
+    charges = [r for r in preview["rows"] if r.get("typ") == "Betaling"]
+    incasso = [r for r in preview["rows"] if r.get("typ") == "Incasso"]
+    fout = [r for r in preview["rows"] if r["status"] == "fout"]
+    assert preview["n_new"] == 3
+    assert preview["n_err"] == 1
+    assert len(refunds) == 1 and refunds[0]["status"] == "nieuw"
+    assert refunds[0]["insert"]["Af Bij"] == "Bij"
+    assert refunds[0]["hoofd"] == charges[0]["hoofd"] == "Overige uitgaven"
+    assert refunds[0]["sub"] == charges[0]["sub"] == "overig"
+    assert refunds[0]["hoofd"] != "Inkomsten"
+    assert incasso[0]["richting"] == "Bij"
+    assert incasso[0]["hoofd"] == "Aflossing"
+    assert fout[0].get("insert") is None
+    assert "TRANSACTIE" in fout[0]["omschrijving"]
+    assert preview["rows"][0]["status"] == "fout"
+
+
+def test_preview_cc_bad_date_does_not_hide_the_rest():
+    text = "\n".join(
+        [
+            "01-06-2025 SHOP AMSTERDAM Betaling - 12,50",
+            "31-02-2025 SHOP AMSTERDAM Credit + 1,00",
+        ]
+    )
+    preview = preview_cc_text(text, _rules(), set(), [])
+    assert preview["n_new"] == 1
+    assert preview["n_err"] == 1
+    assert preview["rows"][0]["status"] == "fout"
+    kept = [r for r in preview["rows"] if r.get("typ") == "Betaling"]
+    assert kept[0]["status"] == "nieuw"
+    assert kept[0]["richting"] == "Af"
+
+
+def test_preview_cc_refund_uses_af_memory_when_charge_is_absent():
+    memory = [
+        {
+            "index_text": "shop amsterdam",
+            "richting": "Af",
+            "hoofd": "Huishouden",
+            "sub": "boodschappen",
+        }
+        for _ in range(3)
+    ]
+    text = "02-06-2025 SHOP AMSTERDAM Credit + 12,50"
+    preview = preview_cc_text(text, _rules(), set(), memory)
+    row = preview["rows"][0]
+    assert row["richting"] == "Bij"
+    assert row["hoofd"] == "Huishouden"
+    assert row["sub"] == "boodschappen"
+    assert row["tone"] == "sure"
+    assert preview["n_err"] == 0
+
+
+def test_import_wait_markup_is_hidden_until_submit():
+    root = Path(__file__).resolve().parents[1] / "findash" / "app" / "templates"
+    form = (root / "partials" / "import_form.html").read_text()
+    preview = (root / "import_preview.html").read_text()
+    base = (root / "base.html").read_text()
+    assert 'class="import-wait" hidden' in form
+    assert "import.wait_preview" in form
+    assert 'class="import-wait" hidden' in preview
+    assert "import.wait_commit" in preview
+    assert "import-form" in base and "import-commit" in base
+    assert "aria-busy" in base
 
 
 def test_sort_doubt_before_sure_then_date_desc():

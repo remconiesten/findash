@@ -23,8 +23,11 @@ CC-`Mutatie` in de hash is de JS-`parseFloat`-string van het Europese bedrag (`1
 ## CC uit PDF (twee n8n-nodes)
 
 1. Filter regels: `^\d{2}-\d{2}-\d{4} .+ (Incasso|Betaling|Kosten) [+-] ?\d{1,3}(\.\d{3})*,\d{2}$`
-2. Parse Datum, Type, bedrag; Omschrijving = rest. **n8n stripte `Kosten` niet uit de omschrijving** — Python doet hetzelfde, anders wijzigt de MD5.
-3. Veld `Rekening` = altijd `Rekening A` (enige CC-rekening in het huishouden).
+2. Zelfde regelvorm met een ander type-woord van minstens 3 letters (direct vóór het getekende bedrag) is ook een mutatie. Het woord wordt `Type` en gaat uit de omschrijving (anders dan `Kosten`). Breekt pypdf de regel zo dat de volgende regel het type-woord én het bedrag is, dan plakken we die vast. Een los bedrag zonder type-woord niet.
+3. Parse Datum, Type, bedrag; Omschrijving = rest. **n8n stripte `Kosten` niet uit de omschrijving** — Python doet hetzelfde, anders wijzigt de MD5. Bestaande `Incasso`/`Betaling`/`Kosten`-hashes blijven gelijk.
+4. Richting: `Incasso` is altijd `Bij` (aflossing, geen uitgave). Een positief bedrag bij een ander type is `Bij` en in het dashboard een terugboeking (`flow_kind=refund`), nooit inkomen — behalve als de hoofdcategorie `Interne overboeking` is, die blijft intern. Een negatief bedrag is `Af` (uitgave). De categorie van een terugboeking volgt de afschrijving met dezelfde omschrijving in hetzelfde bestand, anders het tekstgeheugen van die omschrijving op `Af`, anders `Overige uitgaven/overig` met twijfel.
+5. Een datumregel die dan nog niet past, staat in de voorvertoning als **niet herkend** en wordt niet geschreven.
+6. Veld `Rekening` = altijd `Rekening A` (enige CC-rekening in het huishouden).
 
 ## Anonimiseren
 

@@ -10,5 +10,9 @@
   <div class="field field-submit">
     <button type="submit" class="tx-close">{{ t.ui('import.preview') }}</button>
   </div>
+  <p class="import-wait" hidden role="status" aria-live="polite">
+    <progress aria-hidden="true"></progress>
+    <span>{{ t.ui('import.wait_preview') }}</span>
+  </p>
 </form>
 <p class="hint-quiet">{{ t.ui('import.hint') }}</p>

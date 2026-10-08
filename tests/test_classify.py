@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from app.classify import match_cc_settlements
+from app.classify import CC_FLOW_SQL, match_cc_settlements
 from app.queries import _ymd
 
 
@@ -90,3 +90,15 @@ def test_extra_topup_unmatched():
     statuses = {p["status"] for p in pairs}
     assert "matched" in statuses
     assert "unmatched_topup" in statuses
+
+
+def test_cc_flow_counts_non_incasso_credit_as_refund():
+    sql = " ".join(CC_FLOW_SQL.split())
+    settlement = sql.index("THEN 'cc_settlement'")
+    expense = sql.index("THEN 'expense'")
+    internal = sql.index("THEN 'internal'")
+    refund = sql.index("THEN 'refund'")
+    assert settlement < expense < internal < refund
+    assert "WHEN `Af Bij` = 'Bij' AND `Type` = 'Incasso' THEN 'cc_settlement'" in sql
+    assert "WHEN `Af Bij` = 'Bij' THEN 'refund'" in sql
+    assert internal < sql.rindex("THEN 'expense'")
